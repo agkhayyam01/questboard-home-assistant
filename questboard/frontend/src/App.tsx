@@ -3,6 +3,9 @@ import './App.css'
 
 type Profile = { id: string | number; owner: string; species: string; name: string; color: string; chests: number }
 type Layout = { x: number; y: number; size: number; layer: number }
+declare const __APP_VERSION__: string
+declare const __BUILD_ID__: string
+
 type Item = { id: string | number; name: string; category: 'outfit' | 'accessory' | 'toy' | 'furniture' | 'decoration'; rarity: string; emoji: string; owned: boolean; equipped: boolean; placed: boolean; layout?: Layout | null }
 type Details = { profile: Profile; items: Item[] }
 type Tab = 'all' | 'outfit' | 'accessory' | 'toy' | 'furniture' | 'decoration'
@@ -402,7 +405,7 @@ function App() {
           </section>
         </div>}
       </>}
-      <footer>Made with <span>♥</span> and a little bit of magic <DecorIcon kind="sparkle" /></footer>
+      <footer>Made with <span>♥</span> and a little bit of magic <DecorIcon kind="sparkle" /> <small className="build-id" data-testid="build-id">v{__APP_VERSION__} · build {__BUILD_ID__}</small></footer>
     </main>
     {editing && profile && <div className="modal-backdrop" onClick={() => !busy && setEditing(false)}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="edit-title" onClick={e => e.stopPropagation()}><button className="close-modal" onClick={() => setEditing(false)} aria-label="Close">×</button><div className="eyebrow">MAKE IT YOURS</div><h2 id="edit-title">A little personal touch <DecorIcon kind="flower" /></h2><p>Give your friend a name and a color you love.</p><label htmlFor="friend-name">Your friend’s name</label><input id="friend-name" autoFocus value={name} maxLength={60} onChange={e => setName(e.target.value)} /><label id="color-label">Pick a color</label><div className="color-options" role="group" aria-labelledby="color-label">{colors.map(c => <button key={c} className={color.toLowerCase() === c ? 'chosen' : ''} style={{ backgroundColor: c }} onClick={() => setColor(c)} aria-label={`Choose color ${c}`} aria-pressed={color.toLowerCase() === c}>{color.toLowerCase() === c ? '✓' : ''}</button>)}</div>{error && <p role="alert" style={{ color: '#a65e59' }}>{error}</p>}<button className="primary-button" disabled={busy || !name.trim()} onClick={async () => { if (await mutate(`profiles/${encodeURIComponent(profile.id)}`, { name: name.trim(), color }, 'PATCH')) setEditing(false) }}>Save changes</button></div></div>}
     {reward && <div className="modal-backdrop" onClick={() => setReward(null)}><div className="modal reward-modal" role="dialog" aria-modal="true" aria-labelledby="reward-title" onClick={e => e.stopPropagation()}><button className="close-modal" onClick={() => setReward(null)} aria-label="Close">×</button><div className="eyebrow">A LITTLE SOMETHING FOR YOU</div><h2 id="reward-title">Oh, what a lovely find!</h2><div className="reward-art"><DecorIcon kind="sparkle" /><div>{reward.emoji || <DecorIcon kind="sparkle" />}</div><DecorIcon kind="sparkle" /></div><div className="rarity"><DecorIcon kind="sparkle" /> {reward.rarity}</div><h3>{reward.name}</h3><p>Your new treasure is waiting in your collection.</p><button className="primary-button" onClick={() => setReward(null)}>Lovely! ♡</button></div></div>}

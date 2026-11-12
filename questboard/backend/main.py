@@ -102,6 +102,13 @@ def reset_layout(profile_id: str, item_id: str, request: Request):
     return request.app.state.store.reset_layout(profile_id, item_id)
 
 
+NO_CACHE = {"Cache-Control": "no-cache, must-revalidate"}
+
+
+def cache_headers(path: str):
+    return {} if path.startswith("assets/") else NO_CACHE
+
+
 @app.get("/{path:path}", include_in_schema=False)
 def frontend(path: str):
     if path == "api" or path.startswith("api/"):
@@ -109,8 +116,8 @@ def frontend(path: str):
     dist = Path(os.environ.get("FRONTEND_DIST", Path(__file__).resolve().parent.parent / "frontend" / "dist")).resolve()
     candidate = (dist / path).resolve()
     if candidate.is_relative_to(dist) and candidate.is_file():
-        return FileResponse(candidate)
+        return FileResponse(candidate, headers=cache_headers(path))
     index = (dist / "index.html").resolve()
     if candidate.is_relative_to(dist) and index.is_relative_to(dist) and index.is_file() and (not path or "." not in Path(path).name):
-        return FileResponse(index)
+        return FileResponse(index, headers=NO_CACHE)
     return JSONResponse(status_code=404, content={"detail": "Not found"})

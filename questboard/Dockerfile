@@ -3,7 +3,10 @@ WORKDIR /build
 COPY frontend/package*.json ./
 RUN npm ci
 COPY frontend/ ./
-RUN npm run build
+COPY config.yaml /config.yaml
+ARG QUESTBOARD_BUILD_ID
+ENV QUESTBOARD_BUILD_ID=$QUESTBOARD_BUILD_ID
+RUN rm -rf dist && npm run build
 
 FROM python:3.12-slim
 WORKDIR /app

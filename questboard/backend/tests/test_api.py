@@ -224,3 +224,11 @@ def test_frontend_rejects_escaping_index_symlink(client, tmp_path):
         response = client.get(path)
         assert response.status_code == 404
         assert "private content" not in response.text
+
+
+def test_index_is_never_cached_but_hashed_assets_are(client, tmp_path):
+    (tmp_path / "dist" / "assets").mkdir(parents=True)
+    (tmp_path / "dist" / "index.html").write_text("<html></html>")
+    (tmp_path / "dist" / "assets" / "app-abc.js").write_text("1")
+    assert "no-cache" in client.get("/").headers["cache-control"]
+    assert "cache-control" not in client.get("/assets/app-abc.js").headers

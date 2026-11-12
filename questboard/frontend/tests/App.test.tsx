@@ -103,6 +103,11 @@ afterEach(() => {
 })
 
 describe('Questboard frontend', () => {
+  it('shows the running app version and build identifier', async () => {
+    render(<App />)
+    expect((await screen.findByTestId('build-id')).textContent).toMatch(/^v\d+\.\d+\.\d+ · build \S+/)
+  })
+
   it('loads profiles and switches collections while resetting the filter', async () => {
     const { fetchMock } = createApi()
     const user = userEvent.setup()
