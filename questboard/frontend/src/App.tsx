@@ -75,11 +75,15 @@ function WearableArt({ item, species, wearer }: { item: Item; species: string; w
     <path d="M84 151h52" stroke="#f4d7b6" strokeWidth="3" strokeDasharray="5 5" />
   </svg>
 
-  const hatFill = identifier.includes('crown') ? '#e5bd63' : identifier.includes('flower') ? '#d38e9e' : '#d6a772'
-  return <svg className={`wearable-art wearable-head ${speciesClass}`} viewBox="0 0 220 230" role="img" aria-label={label} focusable="false">
-    {identifier.includes('crown') ? <><path d="m78 53 5-23 15 13 12-23 12 23 15-13 5 23Z" fill={hatFill} stroke="#8f7046" strokeWidth="3" strokeLinejoin="round" /><path d="M78 53h64v9H78Z" fill="#f3d87c" stroke="#8f7046" strokeWidth="2" /></>
-      : identifier.includes('flower') ? <><path d="M79 55q31-13 62 0" fill="none" stroke="#648c68" strokeWidth="6" strokeLinecap="round" /><circle cx="90" cy="46" r="8" fill="#e9b55b" /><circle cx="110" cy="41" r="9" fill="#d78a9e" /><circle cx="130" cy="46" r="8" fill="#e9b55b" /><circle cx="110" cy="41" r="3" fill="#fff0c7" /></>
-        : <><path d="M79 48q8-30 31-31t31 31Z" fill={hatFill} stroke="#8f7046" strokeWidth="3" /><path d="M70 49q40-10 80 0v9q-40 12-80 0Z" fill="#f1d3a2" stroke="#8f7046" strokeWidth="3" /><path d="M102 19q8 11 16 0" fill="none" stroke="#fff2d6" strokeWidth="3" /></>}
+  const headKind = identifier.includes('flower') ? 'flower-crown'
+    : identifier.includes('crown') ? 'crown'
+      : identifier.includes('bow') ? 'bow' : 'hat'
+  const hatFill = headKind === 'crown' ? '#e5bd63' : '#d6a772'
+  return <svg className={`wearable-art wearable-head wearable-${headKind} ${speciesClass}`} viewBox="0 0 220 230" role="img" aria-label={label} focusable="false">
+    {headKind === 'crown' ? <><path d="m78 53 5-23 15 13 12-23 12 23 15-13 5 23Z" fill={hatFill} stroke="#8f7046" strokeWidth="3" strokeLinejoin="round" /><path d="M78 53h64v9H78Z" fill="#f3d87c" stroke="#8f7046" strokeWidth="2" /></>
+      : headKind === 'flower-crown' ? <><path d="M79 55q31-13 62 0" fill="none" stroke="#648c68" strokeWidth="6" strokeLinecap="round" /><circle cx="90" cy="46" r="8" fill="#e9b55b" /><circle cx="110" cy="41" r="9" fill="#d78a9e" /><circle cx="130" cy="46" r="8" fill="#e9b55b" /><circle cx="110" cy="41" r="3" fill="#fff0c7" /></>
+        : headKind === 'bow' ? <><path d="M109 45Q91 26 84 41q-2 12 24 11m3-7q18-19 25-4 2 12-24 11Z" fill="#d78a9e" stroke="#895f71" strokeWidth="3" /><circle cx="110" cy="46" r="6" fill="#f4d284" stroke="#895f71" strokeWidth="2" /></>
+          : <><path d="M79 48q8-30 31-31t31 31Z" fill={hatFill} stroke="#8f7046" strokeWidth="3" /><path d="M70 49q40-10 80 0v9q-40 12-80 0Z" fill="#f1d3a2" stroke="#8f7046" strokeWidth="3" /><path d="M102 19q8 11 16 0" fill="none" stroke="#fff2d6" strokeWidth="3" /></>}
   </svg>
 }
 
@@ -394,7 +398,7 @@ function App() {
               const wearable = item.category === 'outfit' || item.category === 'accessory'
               const active = wearable ? item.equipped : item.placed
               return <article className="item-card" key={item.id}><div className={`item-picture ${item.category}`}><span className="item-emoji">{item.emoji || <DecorIcon kind="sparkle" />}</span>{active && <span className="active-badge">✓ {wearable ? 'Wearing' : 'Placed'}</span>}</div><div className="item-info"><span className={`rarity rarity-${item.rarity.toLowerCase().replace(/[^a-z]/g, '')}`}><DecorIcon kind="sparkle" /> {item.rarity}</span><h3>{item.name}</h3><span className="item-category">{item.category}</span><button disabled={busy} className={active ? 'item-action active-action' : 'item-action'} onClick={() => void mutate(`profiles/${encodeURIComponent(profile.id)}/items/${encodeURIComponent(item.id)}`, wearable ? { equipped: !active } : { placed: !active })}>{active ? (wearable ? 'Take off' : 'Put away') : (wearable ? '♡ Equip' : '＋ Place')}</button></div></article>
-            })}</div> : <div className="empty-items"><span>✧</span><strong>A little room for magic</strong><p>No treasures here yet. Open a chest to find a surprise!</p></div>}
+            })}</div> : <div className="empty-items"><DecorIcon kind="sparkle" /><strong>A little room for magic</strong><p>No treasures here yet. Open a chest to find a surprise!</p></div>}
           </section>
         </div>}
       </>}

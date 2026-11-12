@@ -32,6 +32,10 @@ const initialDetails: Details[] = [
       { id: 'ballerina-dress', name: 'Ballerina Dress', category: 'outfit', rarity: 'Uncommon', emoji: '🩰', owned: true, equipped: false, placed: false },
     ],
   },
+  {
+    profile: { id: 'four', owner: 'Gigi', species: 'bunny', name: 'Gigi', color: '#f4b6c8', chests: 0 },
+    items: [{ id: 'flower-crown', name: 'Flower Crown', category: 'accessory', rarity: 'Uncommon', emoji: '🌼', owned: true, equipped: false, placed: false }],
+  },
 ]
 
 function createApi() {
@@ -105,6 +109,8 @@ describe('Questboard frontend', () => {
     render(<App />)
 
     expect(await screen.findByText('Clover’s little corner')).toBeTruthy()
+    expect(document.body.textContent).not.toMatch(/[✳✺✿✧✦]/u)
+    expect(document.querySelectorAll('.room .decor-icon').length).toBeGreaterThan(0)
     expect(screen.getByText('Cozy Hat')).toBeTruthy()
     expect(screen.queryByText('Lucky Star')).toBeNull()
     await user.click(screen.getByRole('button', { name: /Outfits/ }))
@@ -209,6 +215,7 @@ describe('Questboard frontend', () => {
     await user.click(within(elephantHat).getByRole('button', { name: /Equip/ }))
     const elephantWearable = screen.getByLabelText('Sun Hat worn by Pebble')
     expect(elephantWearable.classList.contains('wearer-elephant')).toBe(true)
+    expect(elephantWearable.classList.contains('wearable-hat')).toBe(true)
     expect(elephantWearable.tagName.toLowerCase()).toBe('svg')
     const elephantOutfit = screen.getByText('Raincoat').closest('article')!
     await user.click(within(elephantOutfit).getByRole('button', { name: /Equip/ }))
@@ -220,10 +227,17 @@ describe('Questboard frontend', () => {
     await user.click(within(hippoCrown).getByRole('button', { name: /Equip/ }))
     const hippoWearable = screen.getByLabelText('Golden Crown worn by Lill')
     expect(hippoWearable.classList.contains('wearer-hippo')).toBe(true)
+    expect(hippoWearable.classList.contains('wearable-crown')).toBe(true)
     expect(hippoWearable.tagName.toLowerCase()).toBe('svg')
     const hippoOutfit = screen.getByText('Ballerina Dress').closest('article')!
     await user.click(within(hippoOutfit).getByRole('button', { name: /Equip/ }))
     expect(screen.getByLabelText('Ballerina Dress worn by Lill').classList.contains('wearable-outfit')).toBe(true)
+
+    await user.click(screen.getByRole('button', { name: /Gigi/ }))
+    await screen.findByText('Gigi’s little corner')
+    const flowerCrown = screen.getByText('Flower Crown').closest('article')!
+    await user.click(within(flowerCrown).getByRole('button', { name: /Equip/ }))
+    expect(screen.getByLabelText('Flower Crown worn by Gigi').classList.contains('wearable-flower-crown')).toBe(true)
   })
 
   it('pinch-resizes and repositions nursery objects with touch pointers', async () => {
