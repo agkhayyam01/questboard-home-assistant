@@ -63,5 +63,27 @@ cd questboard
 python -m pytest backend
 ```
 
-For an add-on image build, run `docker build -t questboard ./questboard` from
-the repository root. No Home Assistant credentials or tokens are needed.
+Run frontend tests and the production build with:
+
+```sh
+cd questboard/frontend
+npm ci
+npm test
+npm run build
+```
+
+Pull requests run the backend and frontend tests and production build in GitHub
+Actions. CI also validates the Home Assistant app configuration, then builds
+and checks the image on a native ARM64 runner. The container test simulates
+ingress and verifies that a Docker volume retains SQLite data after recreation;
+it does not install or deploy the app to Home Assistant.
+
+To run the container integration test locally:
+
+```sh
+docker build -t questboard-ci ./questboard
+cd questboard
+QUESTBOARD_TEST_IMAGE=questboard-ci python -m pytest backend/tests/test_addon_container.py
+```
+
+No Home Assistant credentials or tokens are needed.
