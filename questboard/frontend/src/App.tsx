@@ -1,10 +1,121 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import './App.css'
 
 type Profile = { id: string | number; owner: string; species: string; name: string; color: string; chests: number }
-type Item = { id: string | number; name: string; category: 'outfit' | 'accessory' | 'toy' | 'decoration'; rarity: string; emoji: string; owned: boolean; equipped: boolean; placed: boolean }
+type Layout = { x: number; y: number; size: number; layer: number }
+type Item = { id: string | number; name: string; category: 'outfit' | 'accessory' | 'toy' | 'decoration'; rarity: string; emoji: string; owned: boolean; equipped: boolean; placed: boolean; layout?: Layout | null }
 type Details = { profile: Profile; items: Item[] }
 type Tab = 'all' | 'outfit' | 'accessory' | 'toy' | 'decoration'
+type Point = { x: number; y: number }
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
+const defaultSlots: Point[] = [
+  { x: 14, y: 76 }, { x: 86, y: 76 }, { x: 34, y: 82 }, { x: 66, y: 82 },
+  { x: 24, y: 65 }, { x: 76, y: 65 }, { x: 14, y: 87 }, { x: 86, y: 87 },
+  { x: 43, y: 72 }, { x: 57, y: 72 }, { x: 35, y: 88 }, { x: 65, y: 88 },
+]
+const defaultLayout = (index: number): Layout => ({
+  ...defaultSlots[index % defaultSlots.length],
+  size: 48,
+  layer: 10 + index,
+})
+const objectKey = (profileId: string | number, itemId: string | number) => `${profileId}:${itemId}`
+const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y)
+const midpoint = (points: Point[]) => ({
+  x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
+  y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
+})
+const wearableAnchor = (item: Item) => {
+  const identifier = `${item.id} ${item.name}`.toLowerCase()
+  if (identifier.includes('glass')) return 'glasses'
+  if (identifier.includes('scarf')) return 'scarf'
+  if (item.category === 'outfit') return 'outfit'
+  return 'head'
+}
+
+function NurseryObject({ item, layout, onChange, onSave, onLayer, onReset, disabled }: {
+  item: Item
+  layout: Layout
+  onChange: (layout: Layout) => void
+  onSave: (layout: Layout) => void
+  onLayer: (direction: 'front' | 'back') => void
+  onReset: () => void
+  disabled: boolean
+}) {
+  const pointers = useRef(new Map<number, Point>())
+  const gesture = useRef<{ layout: Layout; center: Point; distance: number } | null>(null)
+  const currentLayout = useRef(layout)
+  currentLayout.current = layout
+
+  const pointerPoint = (event: ReactPointerEvent<HTMLDivElement>): Point => {
+    const room = event.currentTarget.parentElement?.getBoundingClientRect()
+    return { x: event.clientX - (room?.left ?? 0), y: event.clientY - (room?.top ?? 0) }
+  }
+  const beginGesture = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (disabled || (event.target as HTMLElement).closest('button')) return
+    event.preventDefault()
+    if (event.currentTarget.setPointerCapture) event.currentTarget.setPointerCapture(event.pointerId)
+    pointers.current.set(event.pointerId, pointerPoint(event))
+    const points = [...pointers.current.values()]
+    gesture.current = {
+      layout: currentLayout.current,
+      center: midpoint(points),
+      distance: points.length > 1 ? distance(points[0], points[1]) : 0,
+    }
+  }
+  const moveGesture = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!pointers.current.has(event.pointerId) || !gesture.current || disabled) return
+    pointers.current.set(event.pointerId, pointerPoint(event))
+    const points = [...pointers.current.values()]
+    const center = midpoint(points)
+    const room = event.currentTarget.parentElement?.getBoundingClientRect()
+    const base = gesture.current
+    const next = {
+      ...base.layout,
+      x: clamp(base.layout.x + (center.x - base.center.x) / Math.max(room?.width ?? 0, 1) * 100, 0, 100),
+      y: clamp(base.layout.y + (center.y - base.center.y) / Math.max(room?.height ?? 0, 1) * 100, 0, 100),
+      size: points.length > 1 && base.distance > 0
+        ? clamp(Math.round(base.layout.size * distance(points[0], points[1]) / base.distance), 32, 128)
+        : base.layout.size,
+    }
+    currentLayout.current = next
+    onChange(next)
+  }
+  const endGesture = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!pointers.current.has(event.pointerId)) return
+    pointers.current.delete(event.pointerId)
+    gesture.current = null
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) event.currentTarget.releasePointerCapture?.(event.pointerId)
+    onSave(currentLayout.current)
+  }
+  const changeSize = (amount: number) => {
+    const next = { ...layout, size: clamp(layout.size + amount, 32, 128) }
+    currentLayout.current = next
+    onChange(next)
+    onSave(next)
+  }
+  const stopPointer = (event: ReactPointerEvent) => event.stopPropagation()
+
+  return <div
+    className="nursery-object"
+    role="group"
+    aria-label={`${item.name} in the nursery`}
+    style={{ left: `${layout.x}%`, top: `${layout.y}%`, width: `${layout.size}px`, fontSize: `${layout.size * 0.9}px`, zIndex: layout.layer }}
+    onPointerDown={beginGesture}
+    onPointerMove={moveGesture}
+    onPointerUp={endGesture}
+    onPointerCancel={endGesture}
+  >
+    <span className="nursery-object-art" title={item.name} aria-hidden="true">{item.emoji}</span>
+    <div className="nursery-object-controls" aria-label={`${item.name} controls`}>
+      <button type="button" disabled={disabled || layout.size <= 32} onPointerDown={stopPointer} onClick={() => changeSize(-8)} aria-label={`Make ${item.name} smaller`}>−</button>
+      <button type="button" disabled={disabled || layout.size >= 128} onPointerDown={stopPointer} onClick={() => changeSize(8)} aria-label={`Make ${item.name} larger`}>+</button>
+      <button type="button" disabled={disabled} onPointerDown={stopPointer} onClick={() => onLayer('front')} aria-label={`Bring ${item.name} forward`}>↑</button>
+      <button type="button" disabled={disabled} onPointerDown={stopPointer} onClick={() => onLayer('back')} aria-label={`Send ${item.name} backward`}>↓</button>
+      <button type="button" disabled={disabled} onPointerDown={stopPointer} onClick={onReset} aria-label={`Reset ${item.name}`}>↺</button>
+    </div>
+  </div>
+}
 
 const colors = ['#e7a5a2', '#b9a2d4', '#91b5a2', '#e7bf79', '#9cbccc', '#d2a582']
 const tabs: { id: Tab; label: string; icon: string }[] = [
@@ -79,6 +190,7 @@ function App() {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState('')
   const [color, setColor] = useState('')
+  const [layoutOverrides, setLayoutOverrides] = useState<Record<string, Layout>>({})
   const [reward, setReward] = useState<Item | null>(null)
   const [opening, setOpening] = useState(false)
   const selectedRef = useRef(selected)
@@ -159,6 +271,31 @@ function App() {
   const visible = items.filter(item => item.owned && (tab === 'all' || item.category === tab))
   const placed = items.filter(item => item.owned && item.placed && (item.category === 'toy' || item.category === 'decoration'))
   const equipped = items.filter(item => item.owned && item.equipped && (item.category === 'outfit' || item.category === 'accessory'))
+  const placedObjects = placed.map(item => {
+    const key = objectKey(profile?.id ?? '', item.id)
+    const index = items.findIndex(candidate => candidate.id === item.id)
+    return { item, layout: layoutOverrides[key] ?? item.layout ?? defaultLayout(index) }
+  })
+  const persistLayout = (item: Item, layout: Layout) => {
+    if (profile) void mutate(`profiles/${encodeURIComponent(profile.id)}/items/${encodeURIComponent(item.id)}/layout`, layout, 'PUT')
+  }
+  const resetLayout = (item: Item) => {
+    if (!profile) return
+    const key = objectKey(profile.id, item.id)
+    setLayoutOverrides(current => {
+      const next = { ...current }
+      delete next[key]
+      return next
+    })
+    void mutate(`profiles/${encodeURIComponent(profile.id)}/items/${encodeURIComponent(item.id)}/layout`, undefined, 'DELETE')
+  }
+  const changeLayer = (item: Item, layout: Layout, direction: 'front' | 'back') => {
+    const layers = placedObjects.map(object => object.layout.layer)
+    const layer = direction === 'front'
+      ? clamp(Math.max(...layers, layout.layer) + 1, 1, 1000)
+      : clamp(Math.min(...layers, layout.layer) - 1, 1, 1000)
+    persistLayout(item, { ...layout, layer })
+  }
 
   return <div className="app-shell">
     <header className="topbar">
@@ -167,7 +304,7 @@ function App() {
       <div className="top-heart">♡ <span>Made for little dreamers</span></div>
     </header>
     <main>
-      <div className="page-heading"><div><div className="eyebrow"><span>✦</span> A LITTLE MAGIC, EVERY DAY</div><h1>Welcome to your <em>happy place.</em></h1><p>Big adventures start with the littlest friends.</p></div><div className="heading-doodle" aria-hidden="true">✳ <span>✧</span></div></div>
+      <div className="page-heading"><div><div className="eyebrow"><span>✦</span> A LITTLE MAGIC, EVERY DAY</div><h1>Welcome to your <em>happy place.</em></h1><p>Big adventures start with the littlest friends.</p></div><div className="heading-doodle" aria-hidden="true">✦ <span>✧</span></div></div>
       {error && <div className="error-banner" role="alert"><span>Something went a little sideways: {error}</span><button disabled={busy || loadingDetails} onClick={() => { if (selected === null) void loadProfiles(); else { const id = selected; setError(''); setLoadingDetails(true); void refresh(id).catch(e => { if (selectedRef.current === id) setError(e instanceof Error ? e.message : 'Could not refresh your friend.') }).finally(() => { if (selectedRef.current === id) setLoadingDetails(false) }) } }}>Try again</button><button className="dismiss" aria-label="Dismiss error" onClick={() => setError('')}>×</button></div>}
       {loading ? <div className="state-card" role="status">Gathering your little friends… ✨</div> : profiles.length === 0 ? <div className="state-card">No friends found just yet. <button onClick={() => void loadProfiles()}>Try again</button></div> : <>
         <section className="friends-section" aria-label="Choose a friend">
@@ -178,18 +315,34 @@ function App() {
         </section>
         {loadingDetails ? <div className="state-card" role="status">Getting their cozy corner ready…</div> : profile && <div className="dashboard">
           <section className="nursery card">
-            <div className="card-title"><div><div className="eyebrow">HOME SWEET HOME</div><h2>{profile.name}’s little corner <span>✳</span></h2><p>A cozy place to just be you.</p></div><button className="text-button" onClick={() => { setName(profile.name); setColor(profile.color); setEditing(true) }}>✎ <span>Make it yours</span></button></div>
-            <div className="room">
+            <div className="card-title"><div><div className="eyebrow">HOME SWEET HOME</div><h2>{profile.name}’s little corner <span>✦</span></h2><p>A cozy place to just be you.</p></div><button className="text-button" onClick={() => { setName(profile.name); setColor(profile.color); setEditing(true) }}>✎ <span>Make it yours</span></button></div>
+            <div className="room" role="group" aria-label="Nursery play area" aria-describedby="nursery-edit-help">
               <div className="room-sun">✺</div><div className="wall-frame"><span>✿</span></div><div className="wall-stars">✧<br /> ˚</div><div className="bunting">◆ · ◆ · ◆ · ◆ · ◆</div>
               <div className="window"><div className="window-sky">☁ <span>☀</span></div><div className="window-cross" /></div>
               <div className="room-floor" /><div className="rug" /><div className="plant"><span>✿</span><i /></div>
-              <div className="room-creature"><Creature profile={profile} />{equipped.length > 0 && <div className="worn-items" title={equipped.map(i => i.name).join(', ')}>{equipped.map(i => <span key={i.id}>{i.emoji}</span>)}</div>}</div>
-              <div className="room-items">{placed.map(i => <span key={i.id} title={i.name} aria-label={i.name}>{i.emoji}</span>)}</div>
+              <div className="room-creature"><Creature profile={profile} />{equipped.map(item => {
+                const anchor = wearableAnchor(item)
+                const bunny = profile.species.toLowerCase().includes('bunny') || profile.species.toLowerCase().includes('rabbit')
+                const elephant = profile.species.toLowerCase().includes('elephant')
+                const top = anchor === 'glasses' ? '47%' : anchor === 'scarf' ? '60%' : anchor === 'outfit' ? '70%' : bunny ? '1%' : elephant ? '20%' : '16%'
+                return <span key={item.id} className={`worn-item worn-${anchor} ${bunny ? 'wearer-bunny' : elephant ? 'wearer-elephant' : 'wearer-hippo'}`} style={{ top }} title={item.name} aria-label={`${item.name} worn by ${profile.name}`}>{item.emoji}</span>
+              })}</div>
+              {placedObjects.map(({ item, layout }) => <NurseryObject
+                key={item.id}
+                item={item}
+                layout={layout}
+                disabled={busy}
+                onChange={next => setLayoutOverrides(current => ({ ...current, [objectKey(profile.id, item.id)]: next }))}
+                onSave={next => persistLayout(item, next)}
+                onLayer={direction => changeLayer(item, layout, direction)}
+                onReset={() => resetLayout(item)}
+              />)}
               <div className="room-label"><span>♥</span> {profile.name} is happy you’re here!</div>
             </div>
+            <p className="nursery-edit-help" id="nursery-edit-help">Drag toys and decor to arrange them; use two fingers to resize. Each item also has resize, layer, and reset buttons.</p>
             <div className="nursery-footer"><div><span className="sparkle-circle">✦</span><span><strong>Looking lovely!</strong><small>{equipped.length ? `${equipped.length} special ${equipped.length === 1 ? 'thing' : 'things'} worn` : 'Dress up your friend below'}</small></span></div><span className="tiny-heart">♡</span></div>
           </section>
-          <aside className="adventure card"><div className="eyebrow">A LITTLE SURPRISE</div><h2>Treasure awaits<span> ✦</span></h2><p>Every little achievement deserves a little magic.</p><div className={`chest-scene ${opening ? 'is-opening' : ''}`}><span className="chest-sparkle one">✧</span><span className="chest-sparkle two">✦</span><span className="chest-sparkle three">✳</span><Chest open={opening} /></div><div className="chest-count"><strong>{profile.chests}</strong> {profile.chests === 1 ? 'chest' : 'chests'} waiting for you</div><button className="primary-button" disabled={busy || profile.chests < 1} onClick={() => void openChest()}>{opening ? 'A little magic…' : '✦  Open a chest'}</button><button className="earn-button" disabled={busy} onClick={() => void mutate(`profiles/${encodeURIComponent(profile.id)}/simulate-reward`)}>＋ Earn a chest <span>(just for fun!)</span></button></aside>
+          <aside className="adventure card"><div className="eyebrow">A LITTLE SURPRISE</div><h2>Treasure awaits<span> ✦</span></h2><p>Every little achievement deserves a little magic.</p><div className={`chest-scene ${opening ? 'is-opening' : ''}`}><span className="chest-sparkle one">✧</span><span className="chest-sparkle two">✦</span><span className="chest-sparkle three">✦</span><Chest open={opening} /></div><div className="chest-count"><strong>{profile.chests}</strong> {profile.chests === 1 ? 'chest' : 'chests'} waiting for you</div><button className="primary-button" disabled={busy || profile.chests < 1} onClick={() => void openChest()}>{opening ? 'A little magic…' : '✦  Open a chest'}</button><button className="earn-button" disabled={busy} onClick={() => void mutate(`profiles/${encodeURIComponent(profile.id)}/simulate-reward`)}>＋ Earn a chest <span>(just for fun!)</span></button></aside>
           <section className="inventory card"><div className="inventory-heading"><div><div className="eyebrow">THE GOOD STUFF</div><h2>A collection of happy <span>✿</span></h2><p>Little treasures for even bigger imaginations.</p></div><span className="item-count">{items.filter(i => i.owned).length} {items.filter(i => i.owned).length === 1 ? 'treasure' : 'treasures'}</span></div>
             <div className="tabs" role="group" aria-label="Filter treasures">{tabs.map(t => <button aria-pressed={tab === t.id} key={t.id} className={tab === t.id ? 'active' : ''} onClick={() => setTab(t.id)}><span>{t.icon}</span> {t.label}</button>)}</div>
             {visible.length ? <div className="item-grid">{visible.map(item => {

@@ -45,6 +45,13 @@ function createApi() {
       Object.assign(details.profile, JSON.parse(String(init?.body)))
       return Response.json(details.profile)
     }
+    if (parts[3] === 'items' && parts[5] === 'layout' && (method === 'PUT' || method === 'DELETE')) {
+      const item = details.items.find(i => i.id === decodeURIComponent(parts[4] ?? ''))
+      if (!item) return Response.json({ error: 'Item not found' }, { status: 404 })
+      if (method === 'PUT') item.layout = JSON.parse(String(init?.body))
+      else item.layout = null
+      return Response.json(details)
+    }
     if (parts[3] === 'items' && method === 'POST') {
       const item = details.items.find(i => i.id === decodeURIComponent(parts[4] ?? ''))
       if (!item) return Response.json({ error: 'Item not found' }, { status: 404 })
@@ -133,6 +140,36 @@ describe('Questboard frontend', () => {
     expect(screen.getByTitle('Bouncy Ball')).toBeTruthy()
     expect(fetchMock).toHaveBeenCalledWith('api/profiles/one%20%2F%20%3F/items/ball', {
       method: 'POST', body: JSON.stringify({ placed: true }), headers: { 'Content-Type': 'application/json' },
+    })
+  })
+
+  it('supports accessible nursery resize, layering, reset, and saves layouts', async () => {
+    const { fetchMock } = createApi()
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByText('Clover’s little corner')
+    await user.click(screen.getByRole('button', { name: /Place/ }))
+    const nurseryObject = await screen.findByRole('group', { name: 'Bouncy Ball in the nursery' })
+    expect(nurseryObject.getAttribute('style')).toContain('width: 48px')
+
+    await user.click(within(nurseryObject).getByRole('button', { name: 'Make Bouncy Ball larger' }))
+    await waitFor(() => expect(nurseryObject.getAttribute('style')).toContain('width: 56px'))
+    expect(fetchMock).toHaveBeenCalledWith('api/profiles/one%20%2F%20%3F/items/ball/layout', {
+      method: 'PUT',
+      body: JSON.stringify({ x: 86, y: 76, size: 56, layer: 11 }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    await user.click(within(nurseryObject).getByRole('button', { name: 'Bring Bouncy Ball forward' }))
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('api/profiles/one%20%2F%20%3F/items/ball/layout', {
+      method: 'PUT',
+      body: JSON.stringify({ x: 86, y: 76, size: 56, layer: 12 }),
+      headers: { 'Content-Type': 'application/json' },
+    }))
+    await user.click(within(nurseryObject).getByRole('button', { name: 'Reset Bouncy Ball' }))
+    await waitFor(() => expect(nurseryObject.getAttribute('style')).toContain('width: 48px'))
+    expect(fetchMock).toHaveBeenCalledWith('api/profiles/one%20%2F%20%3F/items/ball/layout', {
+      method: 'DELETE', headers: {},
     })
   })
 
