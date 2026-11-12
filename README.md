@@ -10,7 +10,10 @@ own saved creature, chests, and collection.
 
 Choose a profile, name and customize its creature, then use the simulated reward
 button to earn a chest. Open it for a collectible and use your collection to
-equip clothes and accessories or place toys and decorations. Rewards are
+equip clothes and accessories or place toys, furniture, and decorations. Drag
+or pinch nursery objects to arrange them; each object also has accessible
+resize, layering, and reset controls. Layouts are saved separately for each
+friend. Rewards are
 selected from items the player does not already own; when the collection is
 complete, no chest is consumed attempting to open it.
 

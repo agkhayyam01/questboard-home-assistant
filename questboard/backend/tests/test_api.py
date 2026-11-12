@@ -56,7 +56,7 @@ def test_open_all_unique_and_exhaustion_preserves_chest(client):
     assert client.post("/api/profiles/remy/open-chest").status_code == 409
     item_ids = set()
     total = len(client.get("/api/profiles/remy").json()["items"])
-    assert total == 25
+    assert total == 29
     for _ in range(total):
         assert reward(client).status_code == 200
         response = client.post("/api/profiles/remy/open-chest")
@@ -122,10 +122,15 @@ def test_nursery_layout_is_validated_profile_scoped_and_persistent(client):
     with store.connect(write=True) as db:
         db.executemany(
             "INSERT INTO inventory (profile_id, item_id, placed) VALUES (?, ?, 1)",
-            [("remy", "ball"), ("gigi", "ball")],
+            [("remy", "ball"), ("gigi", "ball"), ("remy", "cozy-bed")],
         )
 
     layout_url = "/api/profiles/remy/items/ball/layout"
+    assert client.post("/api/profiles/remy/items/cozy-bed", json={"placed": True}).status_code == 200
+    assert client.put(
+        "/api/profiles/remy/items/cozy-bed/layout",
+        json={"x": 42, "y": 61, "size": 80, "layer": 30},
+    ).status_code == 200
     assert client.get("/api/profiles/remy").json()["items"][16]["layout"] is None
     assert client.put(layout_url, json={"x": 12, "y": 75, "size": 64, "layer": 20}).status_code == 200
     assert client.put(
@@ -145,6 +150,9 @@ def test_nursery_layout_is_validated_profile_scoped_and_persistent(client):
     app.state.store = Store(store.path.parent)
     app.state.store.initialize()
     assert next(item for item in client.get("/api/profiles/remy").json()["items"] if item["id"] == "ball")["layout"] == layouts["remy"]
+    assert next(item for item in client.get("/api/profiles/remy").json()["items"] if item["id"] == "cozy-bed")["layout"] == {
+        "x": 42.0, "y": 61.0, "size": 80, "layer": 30,
+    }
     assert client.delete(layout_url).status_code == 200
     assert next(item for item in client.get("/api/profiles/remy").json()["items"] if item["id"] == "ball")["layout"] is None
     assert next(item for item in client.get("/api/profiles/gigi").json()["items"] if item["id"] == "ball")["layout"] == layouts["gigi"]

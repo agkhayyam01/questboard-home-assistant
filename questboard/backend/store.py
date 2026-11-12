@@ -174,8 +174,8 @@ class Store:
                 raise StoreError(400, "Item is not owned")
             if changes.get("equipped") and row["category"] not in ("outfit", "accessory"):
                 raise StoreError(400, "Only outfits and accessories can be equipped")
-            if changes.get("placed") and row["category"] not in ("toy", "decoration"):
-                raise StoreError(400, "Only toys and decorations can be placed")
+            if changes.get("placed") and row["category"] not in ("toy", "furniture", "decoration"):
+                raise StoreError(400, "Only toys, furniture, and decorations can be placed")
             if changes.get("equipped"):
                 db.execute(
                     """UPDATE inventory SET equipped = 0 WHERE profile_id = ? AND item_id IN
@@ -199,8 +199,8 @@ class Store:
                 raise StoreError(404, "Item not found")
             if row["placed"] is None:
                 raise StoreError(400, "Item is not owned")
-            if not row["placed"] or row["category"] not in ("toy", "decoration"):
-                raise StoreError(400, "Only placed toys and decorations can be arranged")
+            if not row["placed"] or row["category"] not in ("toy", "furniture", "decoration"):
+                raise StoreError(400, "Only placed toys, furniture, and decorations can be arranged")
             db.execute(
                 """INSERT INTO nursery_layout (profile_id, item_id, x, y, size, layer)
                    VALUES (?, ?, ?, ?, ?, ?)
@@ -224,7 +224,7 @@ class Store:
                 raise StoreError(404, "Item not found")
             if row["placed"] is None:
                 raise StoreError(400, "Item is not owned")
-            if not row["placed"] or row["category"] not in ("toy", "decoration"):
-                raise StoreError(400, "Only placed toys and decorations can be arranged")
+            if not row["placed"] or row["category"] not in ("toy", "furniture", "decoration"):
+                raise StoreError(400, "Only placed toys, furniture, and decorations can be arranged")
             db.execute("DELETE FROM nursery_layout WHERE profile_id = ? AND item_id = ?", (profile_id, item_id))
             return {"profile": self.profile(db, profile_id), "items": self.items(db, profile_id)}

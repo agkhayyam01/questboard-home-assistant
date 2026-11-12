@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import App from '../src/App'
 
 type Profile = { id: string; owner: string; species: string; name: string; color: string; chests: number }
-type Item = { id: string; name: string; category: 'outfit' | 'toy'; rarity: string; emoji: string; owned: boolean; equipped: boolean; placed: boolean }
+type Item = { id: string; name: string; category: 'outfit' | 'toy' | 'furniture'; rarity: string; emoji: string; owned: boolean; equipped: boolean; placed: boolean; layout?: { x: number; y: number; size: number; layer: number } | null }
 type Details = { profile: Profile; items: Item[] }
 
 const initialDetails: Details[] = [

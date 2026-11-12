@@ -3,9 +3,9 @@ import './App.css'
 
 type Profile = { id: string | number; owner: string; species: string; name: string; color: string; chests: number }
 type Layout = { x: number; y: number; size: number; layer: number }
-type Item = { id: string | number; name: string; category: 'outfit' | 'accessory' | 'toy' | 'decoration'; rarity: string; emoji: string; owned: boolean; equipped: boolean; placed: boolean; layout?: Layout | null }
+type Item = { id: string | number; name: string; category: 'outfit' | 'accessory' | 'toy' | 'furniture' | 'decoration'; rarity: string; emoji: string; owned: boolean; equipped: boolean; placed: boolean; layout?: Layout | null }
 type Details = { profile: Profile; items: Item[] }
-type Tab = 'all' | 'outfit' | 'accessory' | 'toy' | 'decoration'
+type Tab = 'all' | 'outfit' | 'accessory' | 'toy' | 'furniture' | 'decoration'
 type Point = { x: number; y: number }
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
@@ -123,6 +123,7 @@ const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: 'outfit', label: 'Outfits', icon: '♧' },
   { id: 'accessory', label: 'Accessories', icon: '♕' },
   { id: 'toy', label: 'Toys', icon: '♡' },
+  { id: 'furniture', label: 'Furniture', icon: '⌂' },
   { id: 'decoration', label: 'Decor', icon: '✿' },
 ]
 
@@ -269,7 +270,7 @@ function App() {
   const profile = details?.profile.id === selected ? details.profile : undefined
   const items = profile ? details?.items ?? [] : []
   const visible = items.filter(item => item.owned && (tab === 'all' || item.category === tab))
-  const placed = items.filter(item => item.owned && item.placed && (item.category === 'toy' || item.category === 'decoration'))
+  const placed = items.filter(item => item.owned && item.placed && (item.category === 'toy' || item.category === 'furniture' || item.category === 'decoration'))
   const equipped = items.filter(item => item.owned && item.equipped && (item.category === 'outfit' || item.category === 'accessory'))
   const placedObjects = placed.map(item => {
     const key = objectKey(profile?.id ?? '', item.id)
