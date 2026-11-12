@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../src/App'
 
 type Profile = { id: string; owner: string; species: string; name: string; color: string; chests: number }
-type Item = { id: string; name: string; category: 'outfit' | 'toy' | 'furniture'; rarity: string; emoji: string; owned: boolean; equipped: boolean; placed: boolean; layout?: { x: number; y: number; size: number; layer: number } | null }
+type Item = { id: string; name: string; category: 'outfit' | 'accessory' | 'toy' | 'furniture'; rarity: string; emoji: string; owned: boolean; equipped: boolean; placed: boolean; layout?: { x: number; y: number; size: number; layer: number } | null }
 type Details = { profile: Profile; items: Item[] }
 
 const initialDetails: Details[] = [
@@ -12,13 +12,21 @@ const initialDetails: Details[] = [
     profile: { id: 'one / ?', owner: 'Avery', species: 'bunny', name: 'Clover', color: '#e7a5a2', chests: 0 },
     items: [
       { id: 'hat / 1', name: 'Cozy Hat', category: 'outfit', rarity: 'Common', emoji: '🎩', owned: true, equipped: false, placed: false },
+      { id: 'glasses', name: 'Star Glasses', category: 'accessory', rarity: 'Uncommon', emoji: '👓', owned: true, equipped: false, placed: false },
       { id: 'ball', name: 'Bouncy Ball', category: 'toy', rarity: 'Rare', emoji: '⚽', owned: true, equipped: false, placed: false },
       { id: 'star', name: 'Lucky Star', category: 'toy', rarity: 'Rare', emoji: '⭐', owned: false, equipped: false, placed: false },
     ],
   },
   {
     profile: { id: 'two', owner: 'Blair', species: 'elephant', name: 'Pebble', color: '#91b5a2', chests: 2 },
-    items: [{ id: 'kite', name: 'Blue Kite', category: 'toy', rarity: 'Common', emoji: '🪁', owned: true, equipped: false, placed: false }],
+    items: [
+      { id: 'kite', name: 'Blue Kite', category: 'toy', rarity: 'Common', emoji: '🪁', owned: true, equipped: false, placed: false },
+      { id: 'sun-hat', name: 'Sun Hat', category: 'accessory', rarity: 'Common', emoji: '👒', owned: true, equipped: false, placed: false },
+    ],
+  },
+  {
+    profile: { id: 'three', owner: 'Lill', species: 'hippo', name: 'Lill', color: '#b9a3d5', chests: 0 },
+    items: [{ id: 'crown', name: 'Golden Crown', category: 'accessory', rarity: 'Rare', emoji: '👑', owned: true, equipped: false, placed: false }],
   },
 ]
 
@@ -130,7 +138,7 @@ describe('Questboard frontend', () => {
       headers: { 'Content-Type': 'application/json' },
     })
 
-    await user.click(screen.getByRole('button', { name: /Equip/ }))
+    await user.click(within(screen.getByText('Cozy Hat').closest('article')!).getByRole('button', { name: /Equip/ }))
     expect(await screen.findByText('✓ Wearing')).toBeTruthy()
     expect(fetchMock).toHaveBeenCalledWith('api/profiles/one%20%2F%20%3F/items/hat%20%2F%201', {
       method: 'POST', body: JSON.stringify({ equipped: true }), headers: { 'Content-Type': 'application/json' },
@@ -156,14 +164,14 @@ describe('Questboard frontend', () => {
     await waitFor(() => expect(nurseryObject.getAttribute('style')).toContain('width: 56px'))
     expect(fetchMock).toHaveBeenCalledWith('api/profiles/one%20%2F%20%3F/items/ball/layout', {
       method: 'PUT',
-      body: JSON.stringify({ x: 86, y: 76, size: 56, layer: 11 }),
+      body: JSON.stringify({ x: 34, y: 82, size: 56, layer: 12 }),
       headers: { 'Content-Type': 'application/json' },
     })
 
     await user.click(within(nurseryObject).getByRole('button', { name: 'Bring Bouncy Ball forward' }))
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('api/profiles/one%20%2F%20%3F/items/ball/layout', {
       method: 'PUT',
-      body: JSON.stringify({ x: 86, y: 76, size: 56, layer: 12 }),
+      body: JSON.stringify({ x: 34, y: 82, size: 56, layer: 13 }),
       headers: { 'Content-Type': 'application/json' },
     }))
     await user.click(within(nurseryObject).getByRole('button', { name: 'Reset Bouncy Ball' }))
@@ -171,6 +179,60 @@ describe('Questboard frontend', () => {
     expect(fetchMock).toHaveBeenCalledWith('api/profiles/one%20%2F%20%3F/items/ball/layout', {
       method: 'DELETE', headers: {},
     })
+  })
+
+  it('anchors wearables on the right body area for each creature species', async () => {
+    createApi()
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByText('Clover’s little corner')
+
+    const outfitCard = screen.getByText('Cozy Hat').closest('article')!
+    await user.click(within(outfitCard).getByRole('button', { name: /Equip/ }))
+    expect(screen.getByLabelText('Cozy Hat worn by Clover').className).toContain('worn-outfit')
+    expect(screen.getByLabelText('Cozy Hat worn by Clover').getAttribute('style')).toContain('top: 70%')
+    const glassesCard = screen.getByText('Star Glasses').closest('article')!
+    await user.click(within(glassesCard).getByRole('button', { name: /Equip/ }))
+    expect(screen.getByLabelText('Star Glasses worn by Clover').className).toContain('worn-glasses')
+    expect(screen.getByLabelText('Star Glasses worn by Clover').getAttribute('style')).toContain('top: 47%')
+
+    await user.click(screen.getByRole('button', { name: /Blair/ }))
+    await screen.findByText('Pebble’s little corner')
+    const elephantHat = screen.getByText('Sun Hat').closest('article')!
+    await user.click(within(elephantHat).getByRole('button', { name: /Equip/ }))
+    expect(screen.getByLabelText('Sun Hat worn by Pebble').className).toContain('wearer-elephant')
+    expect(screen.getByLabelText('Sun Hat worn by Pebble').getAttribute('style')).toContain('top: 20%')
+
+    await user.click(screen.getByRole('button', { name: /Lill/ }))
+    await screen.findByText('Lill’s little corner')
+    const hippoCrown = screen.getByText('Golden Crown').closest('article')!
+    await user.click(within(hippoCrown).getByRole('button', { name: /Equip/ }))
+    expect(screen.getByLabelText('Golden Crown worn by Lill').className).toContain('wearer-hippo')
+    expect(screen.getByLabelText('Golden Crown worn by Lill').getAttribute('style')).toContain('top: 16%')
+  })
+
+  it('pinch-resizes and repositions nursery objects with touch pointers', async () => {
+    const { fetchMock } = createApi()
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByText('Clover’s little corner')
+    const room = screen.getByRole('group', { name: 'Nursery play area' })
+    vi.spyOn(room, 'getBoundingClientRect').mockReturnValue({
+      x: 0, y: 0, left: 0, top: 0, right: 400, bottom: 300, width: 400, height: 300,
+      toJSON: () => ({}),
+    })
+    await user.click(screen.getByRole('button', { name: /Place/ }))
+    const nurseryObject = await screen.findByRole('group', { name: 'Bouncy Ball in the nursery' })
+    fireEvent.pointerDown(nurseryObject, { pointerId: 1, pointerType: 'touch', clientX: 100, clientY: 100 })
+    fireEvent.pointerDown(nurseryObject, { pointerId: 2, pointerType: 'touch', clientX: 200, clientY: 100 })
+    fireEvent.pointerMove(nurseryObject, { pointerId: 2, pointerType: 'touch', clientX: 250, clientY: 100 })
+    fireEvent.pointerUp(nurseryObject, { pointerId: 2, pointerType: 'touch', clientX: 250, clientY: 100 })
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('api/profiles/one%20%2F%20%3F/items/ball/layout', {
+      method: 'PUT',
+      body: JSON.stringify({ x: 40.25, y: 82, size: 72, layer: 12 }),
+      headers: { 'Content-Type': 'application/json' },
+    }))
   })
 
   it('earns and opens a simulated chest, updates inventory, and dismisses the reward', async () => {
