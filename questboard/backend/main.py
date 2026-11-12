@@ -93,7 +93,7 @@ def frontend(path: str):
     candidate = (dist / path).resolve()
     if candidate.is_relative_to(dist) and candidate.is_file():
         return FileResponse(candidate)
-    index = dist / "index.html"
-    if candidate.is_relative_to(dist) and index.is_file() and (not path or "." not in Path(path).name):
+    index = (dist / "index.html").resolve()
+    if candidate.is_relative_to(dist) and index.is_relative_to(dist) and index.is_file() and (not path or "." not in Path(path).name):
         return FileResponse(index)
     return JSONResponse(status_code=404, content={"detail": "Not found"})

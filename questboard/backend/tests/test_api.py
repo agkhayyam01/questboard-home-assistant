@@ -130,3 +130,39 @@ def test_frontend_and_api_fallback(client, tmp_path):
     with TestClient(app, root_path="/ingress") as ingress:
         assert ingress.get("/").status_code == 200
         assert ingress.get("/api/profiles").status_code == 200
+
+
+def test_frontend_rejects_traversal_and_escaping_symlinks(client, tmp_path):
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "index.html").write_text("safe index")
+    (dist / "app.js").write_text("safe asset")
+    secret = tmp_path / "private.txt"
+    secret.write_text("private content")
+    (dist / "outside.txt").symlink_to(secret)
+    (dist / "outside-dir").symlink_to(tmp_path, target_is_directory=True)
+    (dist / "inside.js").symlink_to(dist / "app.js")
+
+    assert client.get("/inside.js").text == "safe asset"
+    for path in (
+        "/%2e%2e/private.txt",
+        "/..%2fprivate.txt",
+        "/outside.txt",
+        "/outside-dir/private.txt",
+        "/outside-dir/room",
+    ):
+        response = client.get(path)
+        assert response.status_code == 404, path
+        assert "private content" not in response.text
+
+
+def test_frontend_rejects_escaping_index_symlink(client, tmp_path):
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    secret = tmp_path / "private.txt"
+    secret.write_text("private content")
+    (dist / "index.html").symlink_to(secret)
+    for path in ("/", "/index.html", "/room"):
+        response = client.get(path)
+        assert response.status_code == 404
+        assert "private content" not in response.text
