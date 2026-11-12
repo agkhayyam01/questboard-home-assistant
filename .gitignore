@@ -1,0 +1,9 @@
+.venv/
+.local-data/
+__pycache__/
+.pytest_cache/
+.test-tmp/
+questboard/backend/data/
+*.py[cod]
+*.sqlite
+*.sqlite3
