@@ -18,6 +18,6 @@ python -m pytest backend/tests --basetemp=backend/.test-tmp
 
 Profile and item updates return the updated profile and `{profile, items}` respectively. Simulated rewards return the profile. Each simulation without an `Idempotency-Key` is a new event; repeat a key to safely retry the same event. Keys are global to the simulated source and cannot be reused for a different profile.
 
-Opening a chest with no chests or with a complete collection returns HTTP 409 with a `detail` message and does not consume a chest. Unknown profiles/items return 404, unowned or incompatible items return 400, and invalid input returns 422. Items are unique per profile; outfits and accessories are equipped one per category, while toys and decorations can be placed.
+Opening a chest with no chests or with a complete collection returns HTTP 409 with a `detail` message and does not consume a chest. Unknown profiles/items return 404, unowned or incompatible items return 400, and invalid input returns 422. Items are unique per profile; outfits and accessories are equipped one per category, while toys, furniture, and decorations can be placed and arranged. Nursery item positions, sizes, and layers are stored per profile in SQLite.
 
 `RewardSource` defines a read-only boundary for a possible future Home Assistant adapter. None is configured, and no credentials, synchronization, or HA write operations exist. `Store.record_reward` deduplicates source event IDs and rejects medication-related task metadata before granting a chest.

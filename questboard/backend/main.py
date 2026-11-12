@@ -48,6 +48,13 @@ class ItemUpdate(UpdateModel):
     placed: Annotated[bool | None, Field(strict=True)] = None
 
 
+class LayoutUpdate(UpdateModel):
+    x: Annotated[float, Field(strict=True, ge=0, le=100)]
+    y: Annotated[float, Field(strict=True, ge=0, le=100)]
+    size: Annotated[int, Field(strict=True, ge=32, le=128)]
+    layer: Annotated[int, Field(strict=True, ge=1, le=1000)]
+
+
 @app.get("/api/profiles")
 def profiles(request: Request):
     return request.app.state.store.profiles()
@@ -83,6 +90,16 @@ def open_chest(profile_id: str, request: Request):
 @app.post("/api/profiles/{profile_id}/items/{item_id}")
 def update_item(profile_id: str, item_id: str, update: ItemUpdate, request: Request):
     return request.app.state.store.update_item(profile_id, item_id, update.model_dump(exclude_unset=True))
+
+
+@app.put("/api/profiles/{profile_id}/items/{item_id}/layout")
+def update_layout(profile_id: str, item_id: str, update: LayoutUpdate, request: Request):
+    return request.app.state.store.update_layout(profile_id, item_id, update.model_dump())
+
+
+@app.delete("/api/profiles/{profile_id}/items/{item_id}/layout")
+def reset_layout(profile_id: str, item_id: str, request: Request):
+    return request.app.state.store.reset_layout(profile_id, item_id)
 
 
 @app.get("/{path:path}", include_in_schema=False)

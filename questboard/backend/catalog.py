@@ -26,4 +26,8 @@ ITEMS = [
     ("painting", "Sunny Painting", "decoration", "uncommon", "🖼️"),
     ("balloons", "Party Balloons", "decoration", "uncommon", "🎈"),
     ("castle", "Dream Castle", "decoration", "rare", "🏰"),
+    ("cozy-bed", "Cozy Bed", "furniture", "common", "🛏️"),
+    ("storybook-shelf", "Storybook Shelf", "furniture", "uncommon", "📚"),
+    ("little-chair", "Little Chair", "furniture", "common", "🪑"),
+    ("cloud-beanbag", "Cloud Beanbag", "furniture", "rare", "🛋️"),
 ]

@@ -56,7 +56,7 @@ def test_open_all_unique_and_exhaustion_preserves_chest(client):
     assert client.post("/api/profiles/remy/open-chest").status_code == 409
     item_ids = set()
     total = len(client.get("/api/profiles/remy").json()["items"])
-    assert total == 25
+    assert total == 29
     for _ in range(total):
         assert reward(client).status_code == 200
         response = client.post("/api/profiles/remy/open-chest")
@@ -115,6 +115,64 @@ def test_inventory_equipment_and_placements(client):
     assert items["ball"]["placed"] and items["plant"]["placed"]
     client.post("/api/profiles/remy/items/ball", json={"placed": False})
     assert not next(i for i in client.get("/api/profiles/remy").json()["items"] if i["id"] == "ball")["placed"]
+
+
+def test_nursery_layout_is_validated_profile_scoped_and_persistent(client):
+    store = app.state.store
+    with store.connect(write=True) as db:
+        db.executemany(
+            "INSERT INTO inventory (profile_id, item_id, placed) VALUES (?, ?, 1)",
+            [("remy", "ball"), ("gigi", "ball"), ("remy", "cozy-bed")],
+        )
+
+    layout_url = "/api/profiles/remy/items/ball/layout"
+    assert client.post("/api/profiles/remy/items/cozy-bed", json={"placed": True}).status_code == 200
+    assert client.put(
+        "/api/profiles/remy/items/cozy-bed/layout",
+        json={"x": 42, "y": 61, "size": 80, "layer": 30},
+    ).status_code == 200
+    assert client.get("/api/profiles/remy").json()["items"][16]["layout"] is None
+    assert client.put(layout_url, json={"x": 12, "y": 75, "size": 64, "layer": 20}).status_code == 200
+    assert client.put(
+        "/api/profiles/gigi/items/ball/layout",
+        json={"x": 83.5, "y": 68, "size": 92, "layer": 40},
+    ).status_code == 200
+    layouts = {
+        profile: next(item for item in client.get(f"/api/profiles/{profile}").json()["items"] if item["id"] == "ball")["layout"]
+        for profile in ("remy", "gigi", "lill")
+    }
+    assert layouts == {
+        "remy": {"x": 12.0, "y": 75.0, "size": 64, "layer": 20},
+        "gigi": {"x": 83.5, "y": 68.0, "size": 92, "layer": 40},
+        "lill": None,
+    }
+
+    app.state.store = Store(store.path.parent)
+    app.state.store.initialize()
+    assert next(item for item in client.get("/api/profiles/remy").json()["items"] if item["id"] == "ball")["layout"] == layouts["remy"]
+    assert next(item for item in client.get("/api/profiles/remy").json()["items"] if item["id"] == "cozy-bed")["layout"] == {
+        "x": 42.0, "y": 61.0, "size": 80, "layer": 30,
+    }
+    assert client.delete(layout_url).status_code == 200
+    assert next(item for item in client.get("/api/profiles/remy").json()["items"] if item["id"] == "ball")["layout"] is None
+    assert next(item for item in client.get("/api/profiles/gigi").json()["items"] if item["id"] == "ball")["layout"] == layouts["gigi"]
+
+
+def test_nursery_layout_rejects_invalid_or_unplaced_items(client):
+    store = app.state.store
+    with store.connect(write=True) as db:
+        db.execute("INSERT INTO inventory (profile_id, item_id, placed) VALUES ('remy', 'ball', 1)")
+        db.execute("INSERT INTO inventory (profile_id, item_id) VALUES ('remy', 'glasses')")
+    url = "/api/profiles/remy/items/ball/layout"
+    valid = {"x": 50, "y": 50, "size": 64, "layer": 10}
+    for changed in (
+        {"x": -1}, {"y": 101}, {"size": 31}, {"size": 129}, {"layer": 0}, {"layer": 1001}, {"x": True},
+    ):
+        assert client.put(url, json={**valid, **changed}).status_code == 422
+    assert client.put("/api/profiles/remy/items/plant/layout", json=valid).status_code == 400
+    assert client.put("/api/profiles/remy/items/glasses/layout", json=valid).status_code == 400
+    assert client.put("/api/profiles/remy/items/missing/layout", json=valid).status_code == 404
+    assert client.delete("/api/profiles/remy/items/plant/layout").status_code == 400
 
 
 def test_frontend_and_api_fallback(client, tmp_path):
