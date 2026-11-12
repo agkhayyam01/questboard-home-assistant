@@ -26,12 +26,61 @@ const midpoint = (points: Point[]) => ({
   x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
   y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
 })
-const wearableAnchor = (item: Item) => {
+
+function DecorIcon({ kind, className = '' }: { kind: 'sparkle' | 'flower' | 'sun' | 'hat' | 'dress' | 'heart'; className?: string }) {
+  return <svg className={`decor-icon ${className}`} viewBox="0 0 32 32" aria-hidden="true">
+    {kind === 'sparkle' && <path d="M16 1.5 19.7 12.3 30.5 16l-10.8 3.7L16 30.5l-3.7-10.8L1.5 16l10.8-3.7L16 1.5Z" fill="currentColor" />}
+    {kind === 'flower' && <><path d="M16 4c4.2-5 8.6.1 5.3 4.7 6.1-1 8.1 5.5 2 7.3 5.1 3.4 1.4 9.2-4 6.4 1 6.1-5.5 8.1-7.3 2-3.4 5.1-9.2 1.4-6.4-4-6.1 1-8.1-5.5-2-7.3C-1.5 9.7 2.2 3.9 7.6 6.7 6.6.6 13.1-1.4 14.9 4Z" fill="currentColor" /><circle cx="16" cy="16" r="3" fill="#fff5df" /></>}
+    {kind === 'sun' && <><circle cx="16" cy="16" r="6" fill="currentColor" /><path d="M16 1v5M16 26v5M1 16h5m20 0h5M5.4 5.4 9 9m14 14 3.6 3.6m0-21.2L23 9M9 23l-3.6 3.6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" /></>}
+    {kind === 'hat' && <><path d="M7 17c1.2-6 4.6-10 9-10s7.8 4 9 10H7Z" fill="currentColor" /><path d="M3 19c0-1.4 1.1-2.5 2.5-2.5h21a2.5 2.5 0 0 1 0 5h-21A2.5 2.5 0 0 1 3 19Z" fill="currentColor" /></>}
+    {kind === 'dress' && <path d="m12 4 4 3 4-3 3 2 2 6-4 2 3 14H8l3-14-4-2 2-6 3-2Z" fill="currentColor" />}
+    {kind === 'heart' && <path d="M16 28 4.5 16.8C-1.1 11.4 6.8 2.1 13 7l3 2.7L19 7c6.2-4.9 14.1 4.4 8.5 9.8L16 28Z" fill="currentColor" />}
+  </svg>
+}
+
+function WearableArt({ item, species, wearer }: { item: Item; species: string; wearer: string }) {
   const identifier = `${item.id} ${item.name}`.toLowerCase()
-  if (identifier.includes('glass')) return 'glasses'
-  if (identifier.includes('scarf')) return 'scarf'
-  if (item.category === 'outfit') return 'outfit'
-  return 'head'
+  const isBunny = species.toLowerCase().includes('bunny') || species.toLowerCase().includes('rabbit')
+  const isElephant = species.toLowerCase().includes('elephant')
+  const speciesClass = isBunny ? 'wearer-bunny' : isElephant ? 'wearer-elephant' : 'wearer-hippo'
+  const label = `${item.name} worn by ${wearer}`
+
+  if (item.category === 'outfit') {
+    const palette = identifier.includes('raincoat') ? ['#e7b14f', '#fff0bd']
+      : identifier.includes('stripe') ? ['#719bb6', '#f7e9d8']
+        : identifier.includes('pajama') ? ['#9aaf9f', '#eaf2df']
+          : identifier.includes('overall') ? ['#5885a8', '#f4d36d']
+            : identifier.includes('ballerina') ? ['#e2a0b0', '#fff0f2']
+              : identifier.includes('space') ? ['#85aeb7', '#eef7e7']
+                : identifier.includes('wizard') ? ['#806697', '#f2d579'] : ['#bd8b83', '#f8eadc']
+    return <svg className={`wearable-art wearable-outfit ${speciesClass}`} viewBox="0 0 220 230" role="img" aria-label={label} focusable="false">
+      <path d="M66 158Q110 143 154 158l7 31q-51 26-102 0l7-31Z" fill={palette[0]} stroke="#735d65" strokeOpacity=".35" strokeWidth="2" />
+      {identifier.includes('stripe') && <path d="M73 160h74m-79 12h83m-80 12h77m-67 11h56" stroke={palette[1]} strokeWidth="5" />}
+      {identifier.includes('overall') && <><path d="m78 157 6-13m58 0 6 13" stroke={palette[0]} strokeWidth="9" strokeLinecap="round" /><path d="M101 163v27m18-27v27" stroke={palette[1]} strokeWidth="3" /></>}
+      {identifier.includes('ballerina') && <path d="M67 169q43 12 86 0l12 20q-55 27-110 0l12-20Z" fill={palette[0]} stroke="#fff1ed" strokeWidth="3" />}
+      {(identifier.includes('pajama') || identifier.includes('space')) && <><circle cx="110" cy="174" r="4" fill={palette[1]} /><circle cx="110" cy="186" r="3" fill={palette[1]} /></>}
+    </svg>
+  }
+
+  if (identifier.includes('glass')) return <svg className={`wearable-art wearable-glasses ${speciesClass}`} viewBox="0 0 220 230" role="img" aria-label={label} focusable="false">
+    <path d="M84 108h52" stroke="#7d5967" strokeWidth="4" strokeLinecap="round" />
+    <rect x="64" y="98" width="38" height="25" rx="9" fill="#d8eff0" fillOpacity=".72" stroke="#765c70" strokeWidth="4" />
+    <rect x="118" y="98" width="38" height="25" rx="9" fill="#d8eff0" fillOpacity=".72" stroke="#765c70" strokeWidth="4" />
+    <path d="m65 104-10-4m100 4 10-4" stroke="#765c70" strokeWidth="3" strokeLinecap="round" />
+  </svg>
+
+  if (identifier.includes('scarf')) return <svg className={`wearable-art wearable-scarf ${speciesClass}`} viewBox="0 0 220 230" role="img" aria-label={label} focusable="false">
+    <path d="M71 145q39 17 78 0l-4 13q-35 17-70 0l-4-13Z" fill="#cb827e" stroke="#865f69" strokeOpacity=".4" strokeWidth="2" />
+    <path d="m139 153 11 4-5 25-11-3Z" fill="#cb827e" stroke="#865f69" strokeOpacity=".4" strokeWidth="2" />
+    <path d="M84 151h52" stroke="#f4d7b6" strokeWidth="3" strokeDasharray="5 5" />
+  </svg>
+
+  const hatFill = identifier.includes('crown') ? '#e5bd63' : identifier.includes('flower') ? '#d38e9e' : '#d6a772'
+  return <svg className={`wearable-art wearable-head ${speciesClass}`} viewBox="0 0 220 230" role="img" aria-label={label} focusable="false">
+    {identifier.includes('crown') ? <><path d="m78 53 5-23 15 13 12-23 12 23 15-13 5 23Z" fill={hatFill} stroke="#8f7046" strokeWidth="3" strokeLinejoin="round" /><path d="M78 53h64v9H78Z" fill="#f3d87c" stroke="#8f7046" strokeWidth="2" /></>
+      : identifier.includes('flower') ? <><path d="M79 55q31-13 62 0" fill="none" stroke="#648c68" strokeWidth="6" strokeLinecap="round" /><circle cx="90" cy="46" r="8" fill="#e9b55b" /><circle cx="110" cy="41" r="9" fill="#d78a9e" /><circle cx="130" cy="46" r="8" fill="#e9b55b" /><circle cx="110" cy="41" r="3" fill="#fff0c7" /></>
+        : <><path d="M79 48q8-30 31-31t31 31Z" fill={hatFill} stroke="#8f7046" strokeWidth="3" /><path d="M70 49q40-10 80 0v9q-40 12-80 0Z" fill="#f1d3a2" stroke="#8f7046" strokeWidth="3" /><path d="M102 19q8 11 16 0" fill="none" stroke="#fff2d6" strokeWidth="3" /></>}
+  </svg>
 }
 
 function NurseryObject({ item, layout, onChange, onSave, onLayer, onReset, disabled }: {
@@ -119,13 +168,13 @@ function NurseryObject({ item, layout, onChange, onSave, onLayer, onReset, disab
 }
 
 const colors = ['#e7a5a2', '#b9a2d4', '#91b5a2', '#e7bf79', '#9cbccc', '#d2a582']
-const tabs: { id: Tab; label: string; icon: string }[] = [
-  { id: 'all', label: 'Everything', icon: '✦' },
-  { id: 'outfit', label: 'Outfits', icon: '♧' },
-  { id: 'accessory', label: 'Accessories', icon: '♕' },
-  { id: 'toy', label: 'Toys', icon: '♡' },
-  { id: 'furniture', label: 'Furniture', icon: '⌂' },
-  { id: 'decoration', label: 'Decor', icon: '✿' },
+const tabs: { id: Tab; label: string; icon: 'sparkle' | 'dress' | 'hat' | 'heart' | 'flower' }[] = [
+  { id: 'all', label: 'Everything', icon: 'sparkle' },
+  { id: 'outfit', label: 'Outfits', icon: 'dress' },
+  { id: 'accessory', label: 'Accessories', icon: 'hat' },
+  { id: 'toy', label: 'Toys', icon: 'heart' },
+  { id: 'furniture', label: 'Furniture', icon: 'heart' },
+  { id: 'decoration', label: 'Decor', icon: 'flower' },
 ]
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -301,12 +350,12 @@ function App() {
 
   return <div className="app-shell">
     <header className="topbar">
-      <div className="brand"><span className="brand-mark">✦</span><span>Questboard<span className="brand-dot">.</span></span></div>
+      <div className="brand"><span className="brand-mark"><DecorIcon kind="sparkle" /></span><span>Questboard<span className="brand-dot">.</span></span></div>
       <div className="top-note"><span>☀</span> A little world of wonderful</div>
       <div className="top-heart">♡ <span>Made for little dreamers</span></div>
     </header>
     <main>
-      <div className="page-heading"><div><div className="eyebrow"><span>✦</span> A LITTLE MAGIC, EVERY DAY</div><h1>Welcome to your <em>happy place.</em></h1><p>Big adventures start with the littlest friends.</p></div><div className="heading-doodle" aria-hidden="true">✦ <span>✧</span></div></div>
+      <div className="page-heading"><div><div className="eyebrow"><DecorIcon kind="sparkle" /> A LITTLE MAGIC, EVERY DAY</div><h1>Welcome to your <em>happy place.</em></h1><p>Big adventures start with the littlest friends.</p></div><div className="heading-doodle" aria-hidden="true"><DecorIcon kind="sparkle" /><DecorIcon kind="sparkle" /></div></div>
       {error && <div className="error-banner" role="alert"><span>Something went a little sideways: {error}</span><button disabled={busy || loadingDetails} onClick={() => { if (selected === null) void loadProfiles(); else { const id = selected; setError(''); setLoadingDetails(true); void refresh(id).catch(e => { if (selectedRef.current === id) setError(e instanceof Error ? e.message : 'Could not refresh your friend.') }).finally(() => { if (selectedRef.current === id) setLoadingDetails(false) }) } }}>Try again</button><button className="dismiss" aria-label="Dismiss error" onClick={() => setError('')}>×</button></div>}
       {loading ? <div className="state-card" role="status">Gathering your little friends… ✨</div> : profiles.length === 0 ? <div className="state-card">No friends found just yet. <button onClick={() => void loadProfiles()}>Try again</button></div> : <>
         <section className="friends-section" aria-label="Choose a friend">
@@ -317,18 +366,12 @@ function App() {
         </section>
         {loadingDetails ? <div className="state-card" role="status">Getting their cozy corner ready…</div> : profile && <div className="dashboard">
           <section className="nursery card">
-            <div className="card-title"><div><div className="eyebrow">HOME SWEET HOME</div><h2>{profile.name}’s little corner <span>✦</span></h2><p>A cozy place to just be you.</p></div><button className="text-button" onClick={() => { setName(profile.name); setColor(profile.color); setEditing(true) }}>✎ <span>Make it yours</span></button></div>
+            <div className="card-title"><div><div className="eyebrow">HOME SWEET HOME</div><h2>{profile.name}’s little corner <DecorIcon kind="sparkle" /></h2><p>A cozy place to just be you.</p></div><button className="text-button" onClick={() => { setName(profile.name); setColor(profile.color); setEditing(true) }}>✎ <span>Make it yours</span></button></div>
             <div className="room" role="group" aria-label="Nursery play area" aria-describedby="nursery-edit-help">
-              <div className="room-sun">✺</div><div className="wall-frame"><span>✿</span></div><div className="wall-stars">✧<br /> ˚</div><div className="bunting">◆ · ◆ · ◆ · ◆ · ◆</div>
+              <div className="room-sun"><DecorIcon kind="sun" /></div><div className="wall-frame"><DecorIcon kind="flower" /></div><div className="wall-stars"><DecorIcon kind="sparkle" /><DecorIcon kind="sparkle" /></div><div className="bunting" aria-hidden="true" />
               <div className="window"><div className="window-sky">☁ <span>☀</span></div><div className="window-cross" /></div>
               <div className="room-floor" /><div className="rug" />
-              <div className="room-creature"><Creature profile={profile} />{equipped.map(item => {
-                const anchor = wearableAnchor(item)
-                const bunny = profile.species.toLowerCase().includes('bunny') || profile.species.toLowerCase().includes('rabbit')
-                const elephant = profile.species.toLowerCase().includes('elephant')
-                const top = anchor === 'glasses' ? '47%' : anchor === 'scarf' ? '60%' : anchor === 'outfit' ? '70%' : bunny ? '1%' : elephant ? '20%' : '16%'
-                return <span key={item.id} className={`worn-item worn-${anchor} ${bunny ? 'wearer-bunny' : elephant ? 'wearer-elephant' : 'wearer-hippo'}`} style={{ top }} title={item.name} aria-label={`${item.name} worn by ${profile.name}`}>{item.emoji}</span>
-              })}</div>
+              <div className="room-creature"><Creature profile={profile} />{equipped.map(item => <WearableArt key={item.id} item={item} species={profile.species} wearer={profile.name} />)}</div>
               {placedObjects.map(({ item, layout }) => <NurseryObject
                 key={item.id}
                 item={item}
@@ -342,23 +385,23 @@ function App() {
               <div className="room-label"><span>♥</span> {profile.name} is happy you’re here!</div>
             </div>
             <p className="nursery-edit-help" id="nursery-edit-help">Drag toys, furniture, and decor to arrange them; use two fingers to resize. Each item also has resize, layer, and reset buttons.</p>
-            <div className="nursery-footer"><div><span className="sparkle-circle">✦</span><span><strong>Looking lovely!</strong><small>{equipped.length ? `${equipped.length} special ${equipped.length === 1 ? 'thing' : 'things'} worn` : 'Dress up your friend below'}</small></span></div><span className="tiny-heart">♡</span></div>
+            <div className="nursery-footer"><div><span className="sparkle-circle"><DecorIcon kind="sparkle" /></span><span><strong>Looking lovely!</strong><small>{equipped.length ? `${equipped.length} special ${equipped.length === 1 ? 'thing' : 'things'} worn` : 'Dress up your friend below'}</small></span></div><span className="tiny-heart">♡</span></div>
           </section>
-          <aside className="adventure card"><div className="eyebrow">A LITTLE SURPRISE</div><h2>Treasure awaits<span> ✦</span></h2><p>Every little achievement deserves a little magic.</p><div className={`chest-scene ${opening ? 'is-opening' : ''}`}><span className="chest-sparkle one">✧</span><span className="chest-sparkle two">✦</span><span className="chest-sparkle three">✦</span><Chest open={opening} /></div><div className="chest-count"><strong>{profile.chests}</strong> {profile.chests === 1 ? 'chest' : 'chests'} waiting for you</div><button className="primary-button" disabled={busy || profile.chests < 1} onClick={() => void openChest()}>{opening ? 'A little magic…' : '✦  Open a chest'}</button><button className="earn-button" disabled={busy} onClick={() => void mutate(`profiles/${encodeURIComponent(profile.id)}/simulate-reward`)}>＋ Earn a chest <span>(just for fun!)</span></button></aside>
-          <section className="inventory card"><div className="inventory-heading"><div><div className="eyebrow">THE GOOD STUFF</div><h2>A collection of happy <span>✿</span></h2><p>Little treasures for even bigger imaginations.</p></div><span className="item-count">{items.filter(i => i.owned).length} {items.filter(i => i.owned).length === 1 ? 'treasure' : 'treasures'}</span></div>
-            <div className="tabs" role="group" aria-label="Filter treasures">{tabs.map(t => <button aria-pressed={tab === t.id} key={t.id} className={tab === t.id ? 'active' : ''} onClick={() => setTab(t.id)}><span>{t.icon}</span> {t.label}</button>)}</div>
+          <aside className="adventure card"><div className="eyebrow">A LITTLE SURPRISE</div><h2>Treasure awaits <DecorIcon kind="sparkle" /></h2><p>Every little achievement deserves a little magic.</p><div className={`chest-scene ${opening ? 'is-opening' : ''}`}><span className="chest-sparkle one"><DecorIcon kind="sparkle" /></span><span className="chest-sparkle two"><DecorIcon kind="sparkle" /></span><span className="chest-sparkle three"><DecorIcon kind="sparkle" /></span><Chest open={opening} /></div><div className="chest-count"><strong>{profile.chests}</strong> {profile.chests === 1 ? 'chest' : 'chests'} waiting for you</div><button className="primary-button" disabled={busy || profile.chests < 1} onClick={() => void openChest()}>{opening ? 'A little magic…' : <><DecorIcon kind="sparkle" /> Open a chest</>}</button><button className="earn-button" disabled={busy} onClick={() => void mutate(`profiles/${encodeURIComponent(profile.id)}/simulate-reward`)}>＋ Earn a chest <span>(just for fun!)</span></button></aside>
+          <section className="inventory card"><div className="inventory-heading"><div><div className="eyebrow">THE GOOD STUFF</div><h2>A collection of happy <DecorIcon kind="flower" /></h2><p>Little treasures for even bigger imaginations.</p></div><span className="item-count">{items.filter(i => i.owned).length} {items.filter(i => i.owned).length === 1 ? 'treasure' : 'treasures'}</span></div>
+          <div className="tabs" role="group" aria-label="Filter treasures">{tabs.map(t => <button aria-pressed={tab === t.id} key={t.id} className={tab === t.id ? 'active' : ''} onClick={() => setTab(t.id)}><span><DecorIcon kind={t.icon} /></span> {t.label}</button>)}</div>
             {visible.length ? <div className="item-grid">{visible.map(item => {
               const wearable = item.category === 'outfit' || item.category === 'accessory'
               const active = wearable ? item.equipped : item.placed
-              return <article className="item-card" key={item.id}><div className={`item-picture ${item.category}`}><span className="item-emoji">{item.emoji || '✦'}</span>{active && <span className="active-badge">✓ {wearable ? 'Wearing' : 'Placed'}</span>}</div><div className="item-info"><span className={`rarity rarity-${item.rarity.toLowerCase().replace(/[^a-z]/g, '')}`}>✦ {item.rarity}</span><h3>{item.name}</h3><span className="item-category">{item.category}</span><button disabled={busy} className={active ? 'item-action active-action' : 'item-action'} onClick={() => void mutate(`profiles/${encodeURIComponent(profile.id)}/items/${encodeURIComponent(item.id)}`, wearable ? { equipped: !active } : { placed: !active })}>{active ? (wearable ? 'Take off' : 'Put away') : (wearable ? '♡ Equip' : '＋ Place')}</button></div></article>
+              return <article className="item-card" key={item.id}><div className={`item-picture ${item.category}`}><span className="item-emoji">{item.emoji || <DecorIcon kind="sparkle" />}</span>{active && <span className="active-badge">✓ {wearable ? 'Wearing' : 'Placed'}</span>}</div><div className="item-info"><span className={`rarity rarity-${item.rarity.toLowerCase().replace(/[^a-z]/g, '')}`}><DecorIcon kind="sparkle" /> {item.rarity}</span><h3>{item.name}</h3><span className="item-category">{item.category}</span><button disabled={busy} className={active ? 'item-action active-action' : 'item-action'} onClick={() => void mutate(`profiles/${encodeURIComponent(profile.id)}/items/${encodeURIComponent(item.id)}`, wearable ? { equipped: !active } : { placed: !active })}>{active ? (wearable ? 'Take off' : 'Put away') : (wearable ? '♡ Equip' : '＋ Place')}</button></div></article>
             })}</div> : <div className="empty-items"><span>✧</span><strong>A little room for magic</strong><p>No treasures here yet. Open a chest to find a surprise!</p></div>}
           </section>
         </div>}
       </>}
-      <footer>Made with <span>♥</span> and a little bit of magic <span>✦</span></footer>
+      <footer>Made with <span>♥</span> and a little bit of magic <DecorIcon kind="sparkle" /></footer>
     </main>
-    {editing && profile && <div className="modal-backdrop" onClick={() => !busy && setEditing(false)}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="edit-title" onClick={e => e.stopPropagation()}><button className="close-modal" onClick={() => setEditing(false)} aria-label="Close">×</button><div className="eyebrow">MAKE IT YOURS</div><h2 id="edit-title">A little personal touch <span>✿</span></h2><p>Give your friend a name and a color you love.</p><label htmlFor="friend-name">Your friend’s name</label><input id="friend-name" autoFocus value={name} maxLength={60} onChange={e => setName(e.target.value)} /><label id="color-label">Pick a color</label><div className="color-options" role="group" aria-labelledby="color-label">{colors.map(c => <button key={c} className={color.toLowerCase() === c ? 'chosen' : ''} style={{ backgroundColor: c }} onClick={() => setColor(c)} aria-label={`Choose color ${c}`} aria-pressed={color.toLowerCase() === c}>{color.toLowerCase() === c ? '✓' : ''}</button>)}</div>{error && <p role="alert" style={{ color: '#a65e59' }}>{error}</p>}<button className="primary-button" disabled={busy || !name.trim()} onClick={async () => { if (await mutate(`profiles/${encodeURIComponent(profile.id)}`, { name: name.trim(), color }, 'PATCH')) setEditing(false) }}>Save changes</button></div></div>}
-    {reward && <div className="modal-backdrop" onClick={() => setReward(null)}><div className="modal reward-modal" role="dialog" aria-modal="true" aria-labelledby="reward-title" onClick={e => e.stopPropagation()}><button className="close-modal" onClick={() => setReward(null)} aria-label="Close">×</button><div className="eyebrow">A LITTLE SOMETHING FOR YOU</div><h2 id="reward-title">Oh, what a lovely find!</h2><div className="reward-art"><span>✧</span><div>{reward.emoji || '✦'}</div><span>✦</span></div><div className="rarity">✦ {reward.rarity}</div><h3>{reward.name}</h3><p>Your new treasure is waiting in your collection.</p><button className="primary-button" onClick={() => setReward(null)}>Lovely! ♡</button></div></div>}
+    {editing && profile && <div className="modal-backdrop" onClick={() => !busy && setEditing(false)}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="edit-title" onClick={e => e.stopPropagation()}><button className="close-modal" onClick={() => setEditing(false)} aria-label="Close">×</button><div className="eyebrow">MAKE IT YOURS</div><h2 id="edit-title">A little personal touch <DecorIcon kind="flower" /></h2><p>Give your friend a name and a color you love.</p><label htmlFor="friend-name">Your friend’s name</label><input id="friend-name" autoFocus value={name} maxLength={60} onChange={e => setName(e.target.value)} /><label id="color-label">Pick a color</label><div className="color-options" role="group" aria-labelledby="color-label">{colors.map(c => <button key={c} className={color.toLowerCase() === c ? 'chosen' : ''} style={{ backgroundColor: c }} onClick={() => setColor(c)} aria-label={`Choose color ${c}`} aria-pressed={color.toLowerCase() === c}>{color.toLowerCase() === c ? '✓' : ''}</button>)}</div>{error && <p role="alert" style={{ color: '#a65e59' }}>{error}</p>}<button className="primary-button" disabled={busy || !name.trim()} onClick={async () => { if (await mutate(`profiles/${encodeURIComponent(profile.id)}`, { name: name.trim(), color }, 'PATCH')) setEditing(false) }}>Save changes</button></div></div>}
+    {reward && <div className="modal-backdrop" onClick={() => setReward(null)}><div className="modal reward-modal" role="dialog" aria-modal="true" aria-labelledby="reward-title" onClick={e => e.stopPropagation()}><button className="close-modal" onClick={() => setReward(null)} aria-label="Close">×</button><div className="eyebrow">A LITTLE SOMETHING FOR YOU</div><h2 id="reward-title">Oh, what a lovely find!</h2><div className="reward-art"><DecorIcon kind="sparkle" /><div>{reward.emoji || <DecorIcon kind="sparkle" />}</div><DecorIcon kind="sparkle" /></div><div className="rarity"><DecorIcon kind="sparkle" /> {reward.rarity}</div><h3>{reward.name}</h3><p>Your new treasure is waiting in your collection.</p><button className="primary-button" onClick={() => setReward(null)}>Lovely! ♡</button></div></div>}
   </div>
 }
 

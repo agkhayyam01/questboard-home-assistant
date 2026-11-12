@@ -22,11 +22,15 @@ const initialDetails: Details[] = [
     items: [
       { id: 'kite', name: 'Blue Kite', category: 'toy', rarity: 'Common', emoji: '🪁', owned: true, equipped: false, placed: false },
       { id: 'sun-hat', name: 'Sun Hat', category: 'accessory', rarity: 'Common', emoji: '👒', owned: true, equipped: false, placed: false },
+      { id: 'raincoat', name: 'Raincoat', category: 'outfit', rarity: 'Common', emoji: '🧥', owned: true, equipped: false, placed: false },
     ],
   },
   {
     profile: { id: 'three', owner: 'Lill', species: 'hippo', name: 'Lill', color: '#b9a3d5', chests: 0 },
-    items: [{ id: 'crown', name: 'Golden Crown', category: 'accessory', rarity: 'Rare', emoji: '👑', owned: true, equipped: false, placed: false }],
+    items: [
+      { id: 'crown', name: 'Golden Crown', category: 'accessory', rarity: 'Rare', emoji: '👑', owned: true, equipped: false, placed: false },
+      { id: 'ballerina-dress', name: 'Ballerina Dress', category: 'outfit', rarity: 'Uncommon', emoji: '🩰', owned: true, equipped: false, placed: false },
+    ],
   },
 ]
 
@@ -189,26 +193,37 @@ describe('Questboard frontend', () => {
 
     const outfitCard = screen.getByText('Cozy Hat').closest('article')!
     await user.click(within(outfitCard).getByRole('button', { name: /Equip/ }))
-    expect(screen.getByLabelText('Cozy Hat worn by Clover').className).toContain('worn-outfit')
-    expect(screen.getByLabelText('Cozy Hat worn by Clover').getAttribute('style')).toContain('top: 70%')
+    const bunnyOutfit = screen.getByLabelText('Cozy Hat worn by Clover')
+    expect(bunnyOutfit.classList.contains('wearable-outfit')).toBe(true)
+    expect(bunnyOutfit.tagName.toLowerCase()).toBe('svg')
+    expect(bunnyOutfit.getAttribute('viewBox')).toBe('0 0 220 230')
     const glassesCard = screen.getByText('Star Glasses').closest('article')!
     await user.click(within(glassesCard).getByRole('button', { name: /Equip/ }))
-    expect(screen.getByLabelText('Star Glasses worn by Clover').className).toContain('worn-glasses')
-    expect(screen.getByLabelText('Star Glasses worn by Clover').getAttribute('style')).toContain('top: 47%')
+    const bunnyGlasses = screen.getByLabelText('Star Glasses worn by Clover')
+    expect(bunnyGlasses.classList.contains('wearable-glasses')).toBe(true)
+    expect(bunnyGlasses.tagName.toLowerCase()).toBe('svg')
 
     await user.click(screen.getByRole('button', { name: /Blair/ }))
     await screen.findByText('Pebble’s little corner')
     const elephantHat = screen.getByText('Sun Hat').closest('article')!
     await user.click(within(elephantHat).getByRole('button', { name: /Equip/ }))
-    expect(screen.getByLabelText('Sun Hat worn by Pebble').className).toContain('wearer-elephant')
-    expect(screen.getByLabelText('Sun Hat worn by Pebble').getAttribute('style')).toContain('top: 20%')
+    const elephantWearable = screen.getByLabelText('Sun Hat worn by Pebble')
+    expect(elephantWearable.classList.contains('wearer-elephant')).toBe(true)
+    expect(elephantWearable.tagName.toLowerCase()).toBe('svg')
+    const elephantOutfit = screen.getByText('Raincoat').closest('article')!
+    await user.click(within(elephantOutfit).getByRole('button', { name: /Equip/ }))
+    expect(screen.getByLabelText('Raincoat worn by Pebble').classList.contains('wearable-outfit')).toBe(true)
 
     await user.click(screen.getByRole('button', { name: /Lill/ }))
     await screen.findByText('Lill’s little corner')
     const hippoCrown = screen.getByText('Golden Crown').closest('article')!
     await user.click(within(hippoCrown).getByRole('button', { name: /Equip/ }))
-    expect(screen.getByLabelText('Golden Crown worn by Lill').className).toContain('wearer-hippo')
-    expect(screen.getByLabelText('Golden Crown worn by Lill').getAttribute('style')).toContain('top: 16%')
+    const hippoWearable = screen.getByLabelText('Golden Crown worn by Lill')
+    expect(hippoWearable.classList.contains('wearer-hippo')).toBe(true)
+    expect(hippoWearable.tagName.toLowerCase()).toBe('svg')
+    const hippoOutfit = screen.getByText('Ballerina Dress').closest('article')!
+    await user.click(within(hippoOutfit).getByRole('button', { name: /Equip/ }))
+    expect(screen.getByLabelText('Ballerina Dress worn by Lill').classList.contains('wearable-outfit')).toBe(true)
   })
 
   it('pinch-resizes and repositions nursery objects with touch pointers', async () => {
