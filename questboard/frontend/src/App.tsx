@@ -10,13 +10,14 @@ type Point = { x: number; y: number }
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 const defaultSlots: Point[] = [
-  { x: 14, y: 76 }, { x: 86, y: 76 }, { x: 34, y: 82 }, { x: 66, y: 82 },
-  { x: 24, y: 65 }, { x: 76, y: 65 }, { x: 14, y: 87 }, { x: 86, y: 87 },
-  { x: 43, y: 72 }, { x: 57, y: 72 }, { x: 35, y: 88 }, { x: 65, y: 88 },
+  { x: 14, y: 76 }, { x: 86, y: 76 }, { x: 50, y: 86 }, { x: 86, y: 87 },
+  { x: 14, y: 62 }, { x: 86, y: 62 }, { x: 38, y: 73 }, { x: 62, y: 73 },
+  { x: 26, y: 60 }, { x: 14, y: 82 }, { x: 40, y: 87 }, { x: 80, y: 63 },
+  { x: 50, y: 56 }, { x: 30, y: 70 }, { x: 70, y: 70 }, { x: 62, y: 86 },
 ]
 const defaultLayout = (index: number): Layout => ({
   ...defaultSlots[index % defaultSlots.length],
-  size: 48,
+  size: 40,
   layer: 10 + index,
 })
 const objectKey = (profileId: string | number, itemId: string | number) => `${profileId}:${itemId}`
@@ -320,7 +321,7 @@ function App() {
             <div className="room" role="group" aria-label="Nursery play area" aria-describedby="nursery-edit-help">
               <div className="room-sun">✺</div><div className="wall-frame"><span>✿</span></div><div className="wall-stars">✧<br /> ˚</div><div className="bunting">◆ · ◆ · ◆ · ◆ · ◆</div>
               <div className="window"><div className="window-sky">☁ <span>☀</span></div><div className="window-cross" /></div>
-              <div className="room-floor" /><div className="rug" /><div className="plant"><span>✿</span><i /></div>
+              <div className="room-floor" /><div className="rug" />
               <div className="room-creature"><Creature profile={profile} />{equipped.map(item => {
                 const anchor = wearableAnchor(item)
                 const bunny = profile.species.toLowerCase().includes('bunny') || profile.species.toLowerCase().includes('rabbit')
@@ -340,7 +341,7 @@ function App() {
               />)}
               <div className="room-label"><span>♥</span> {profile.name} is happy you’re here!</div>
             </div>
-            <p className="nursery-edit-help" id="nursery-edit-help">Drag toys and decor to arrange them; use two fingers to resize. Each item also has resize, layer, and reset buttons.</p>
+            <p className="nursery-edit-help" id="nursery-edit-help">Drag toys, furniture, and decor to arrange them; use two fingers to resize. Each item also has resize, layer, and reset buttons.</p>
             <div className="nursery-footer"><div><span className="sparkle-circle">✦</span><span><strong>Looking lovely!</strong><small>{equipped.length ? `${equipped.length} special ${equipped.length === 1 ? 'thing' : 'things'} worn` : 'Dress up your friend below'}</small></span></div><span className="tiny-heart">♡</span></div>
           </section>
           <aside className="adventure card"><div className="eyebrow">A LITTLE SURPRISE</div><h2>Treasure awaits<span> ✦</span></h2><p>Every little achievement deserves a little magic.</p><div className={`chest-scene ${opening ? 'is-opening' : ''}`}><span className="chest-sparkle one">✧</span><span className="chest-sparkle two">✦</span><span className="chest-sparkle three">✦</span><Chest open={opening} /></div><div className="chest-count"><strong>{profile.chests}</strong> {profile.chests === 1 ? 'chest' : 'chests'} waiting for you</div><button className="primary-button" disabled={busy || profile.chests < 1} onClick={() => void openChest()}>{opening ? 'A little magic…' : '✦  Open a chest'}</button><button className="earn-button" disabled={busy} onClick={() => void mutate(`profiles/${encodeURIComponent(profile.id)}/simulate-reward`)}>＋ Earn a chest <span>(just for fun!)</span></button></aside>

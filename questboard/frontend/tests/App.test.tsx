@@ -158,24 +158,24 @@ describe('Questboard frontend', () => {
     await screen.findByText('Clover’s little corner')
     await user.click(screen.getByRole('button', { name: /Place/ }))
     const nurseryObject = await screen.findByRole('group', { name: 'Bouncy Ball in the nursery' })
-    expect(nurseryObject.getAttribute('style')).toContain('width: 48px')
+    expect(nurseryObject.getAttribute('style')).toContain('width: 40px')
 
     await user.click(within(nurseryObject).getByRole('button', { name: 'Make Bouncy Ball larger' }))
-    await waitFor(() => expect(nurseryObject.getAttribute('style')).toContain('width: 56px'))
+    await waitFor(() => expect(nurseryObject.getAttribute('style')).toContain('width: 48px'))
     expect(fetchMock).toHaveBeenCalledWith('api/profiles/one%20%2F%20%3F/items/ball/layout', {
       method: 'PUT',
-      body: JSON.stringify({ x: 34, y: 82, size: 56, layer: 12 }),
+      body: JSON.stringify({ x: 50, y: 86, size: 48, layer: 12 }),
       headers: { 'Content-Type': 'application/json' },
     })
 
     await user.click(within(nurseryObject).getByRole('button', { name: 'Bring Bouncy Ball forward' }))
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('api/profiles/one%20%2F%20%3F/items/ball/layout', {
       method: 'PUT',
-      body: JSON.stringify({ x: 34, y: 82, size: 56, layer: 13 }),
+      body: JSON.stringify({ x: 50, y: 86, size: 48, layer: 13 }),
       headers: { 'Content-Type': 'application/json' },
     }))
     await user.click(within(nurseryObject).getByRole('button', { name: 'Reset Bouncy Ball' }))
-    await waitFor(() => expect(nurseryObject.getAttribute('style')).toContain('width: 48px'))
+    await waitFor(() => expect(nurseryObject.getAttribute('style')).toContain('width: 40px'))
     expect(fetchMock).toHaveBeenCalledWith('api/profiles/one%20%2F%20%3F/items/ball/layout', {
       method: 'DELETE', headers: {},
     })
@@ -230,7 +230,7 @@ describe('Questboard frontend', () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('api/profiles/one%20%2F%20%3F/items/ball/layout', {
       method: 'PUT',
-      body: JSON.stringify({ x: 40.25, y: 82, size: 72, layer: 12 }),
+      body: JSON.stringify({ x: 56.25, y: 86, size: 60, layer: 12 }),
       headers: { 'Content-Type': 'application/json' },
     }))
   })
