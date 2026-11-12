@@ -50,6 +50,14 @@ class Store:
                     equipped INTEGER NOT NULL DEFAULT 0,
                     placed INTEGER NOT NULL DEFAULT 0,
                     PRIMARY KEY (profile_id, item_id))""",
+                """CREATE TABLE IF NOT EXISTS nursery_layout (
+                    profile_id TEXT NOT NULL REFERENCES profiles(id),
+                    item_id TEXT NOT NULL REFERENCES items(id),
+                    x REAL NOT NULL CHECK (x >= 0 AND x <= 100),
+                    y REAL NOT NULL CHECK (y >= 0 AND y <= 100),
+                    size INTEGER NOT NULL CHECK (size >= 32 AND size <= 128),
+                    layer INTEGER NOT NULL CHECK (layer >= 1 AND layer <= 1000),
+                    PRIMARY KEY (profile_id, item_id))""",
                 """CREATE TABLE IF NOT EXISTS reward_events (
                     source TEXT NOT NULL, event_id TEXT NOT NULL,
                     profile_id TEXT NOT NULL REFERENCES profiles(id),
@@ -80,10 +88,12 @@ class Store:
     def items(db, profile_id):
         rows = db.execute(
             """SELECT i.*, inv.item_id IS NOT NULL AS owned,
-                      COALESCE(inv.equipped, 0) AS equipped, COALESCE(inv.placed, 0) AS placed
+                      COALESCE(inv.equipped, 0) AS equipped, COALESCE(inv.placed, 0) AS placed,
+                      nl.x AS layout_x, nl.y AS layout_y, nl.size AS layout_size, nl.layer AS layout_layer
                FROM items i LEFT JOIN inventory inv ON inv.item_id = i.id AND inv.profile_id = ?
+               LEFT JOIN nursery_layout nl ON nl.item_id = i.id AND nl.profile_id = ?
                ORDER BY i.rowid""",
-            (profile_id,),
+            (profile_id, profile_id),
         ).fetchall()
         return [Store.item(row) for row in rows]
 
@@ -92,6 +102,14 @@ class Store:
         result = dict(row)
         for field in ("owned", "equipped", "placed"):
             result[field] = bool(result[field])
+        result["layout"] = (
+            {"x": result.pop("layout_x"), "y": result.pop("layout_y"),
+             "size": result.pop("layout_size"), "layer": result.pop("layout_layer")}
+            if result["layout_x"] is not None else None
+        )
+        if result["layout"] is None:
+            for field in ("layout_x", "layout_y", "layout_size", "layout_layer"):
+                result.pop(field)
         return result
 
     def profiles(self):
@@ -166,4 +184,47 @@ class Store:
                 )
             for key, value in changes.items():
                 db.execute(f"UPDATE inventory SET {key} = ? WHERE profile_id = ? AND item_id = ?", (int(value), profile_id, item_id))
+            return {"profile": self.profile(db, profile_id), "items": self.items(db, profile_id)}
+
+    def update_layout(self, profile_id, item_id, layout):
+        with self.connect(write=True) as db:
+            self.profile(db, profile_id)
+            row = db.execute(
+                """SELECT i.category, inv.placed FROM items i
+                   LEFT JOIN inventory inv ON inv.item_id = i.id AND inv.profile_id = ?
+                   WHERE i.id = ?""",
+                (profile_id, item_id),
+            ).fetchone()
+            if row is None:
+                raise StoreError(404, "Item not found")
+            if row["placed"] is None:
+                raise StoreError(400, "Item is not owned")
+            if not row["placed"] or row["category"] not in ("toy", "decoration"):
+                raise StoreError(400, "Only placed toys and decorations can be arranged")
+            db.execute(
+                """INSERT INTO nursery_layout (profile_id, item_id, x, y, size, layer)
+                   VALUES (?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(profile_id, item_id) DO UPDATE SET
+                       x = excluded.x, y = excluded.y,
+                       size = excluded.size, layer = excluded.layer""",
+                (profile_id, item_id, layout["x"], layout["y"], layout["size"], layout["layer"]),
+            )
+            return {"profile": self.profile(db, profile_id), "items": self.items(db, profile_id)}
+
+    def reset_layout(self, profile_id, item_id):
+        with self.connect(write=True) as db:
+            self.profile(db, profile_id)
+            row = db.execute(
+                """SELECT i.category, inv.placed FROM items i
+                   LEFT JOIN inventory inv ON inv.item_id = i.id AND inv.profile_id = ?
+                   WHERE i.id = ?""",
+                (profile_id, item_id),
+            ).fetchone()
+            if row is None:
+                raise StoreError(404, "Item not found")
+            if row["placed"] is None:
+                raise StoreError(400, "Item is not owned")
+            if not row["placed"] or row["category"] not in ("toy", "decoration"):
+                raise StoreError(400, "Only placed toys and decorations can be arranged")
+            db.execute("DELETE FROM nursery_layout WHERE profile_id = ? AND item_id = ?", (profile_id, item_id))
             return {"profile": self.profile(db, profile_id), "items": self.items(db, profile_id)}
