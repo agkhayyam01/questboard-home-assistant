@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import './App.css'
 
 type Profile = { id: string | number; owner: string; species: string; name: string; color: string; chests: number }
@@ -10,6 +10,7 @@ type Item = { id: string | number; name: string; category: 'outfit' | 'accessory
 type Details = { profile: Profile; items: Item[] }
 type Tab = 'all' | 'outfit' | 'accessory' | 'toy' | 'furniture' | 'decoration'
 type Point = { x: number; y: number }
+type CreatureAction = 'idle' | 'walking' | 'happy' | 'sitting' | 'waving' | 'celebrating'
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 const defaultSlots: Point[] = [
@@ -90,13 +91,15 @@ function WearableArt({ item, species, wearer }: { item: Item; species: string; w
   </svg>
 }
 
-function NurseryObject({ item, layout, onChange, onSave, onLayer, onReset, disabled }: {
+function NurseryObject({ item, layout, onChange, onSave, onLayer, onReset, onSelect, selected, disabled }: {
   item: Item
   layout: Layout
   onChange: (layout: Layout) => void
   onSave: (layout: Layout) => void
   onLayer: (direction: 'front' | 'back') => void
   onReset: () => void
+  onSelect: () => void
+  selected: boolean
   disabled: boolean
 }) {
   const pointers = useRef(new Map<number, Point>())
@@ -110,6 +113,7 @@ function NurseryObject({ item, layout, onChange, onSave, onLayer, onReset, disab
   }
   const beginGesture = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (disabled || (event.target as HTMLElement).closest('button')) return
+    onSelect()
     event.preventDefault()
     if (event.currentTarget.setPointerCapture) event.currentTarget.setPointerCapture(event.pointerId)
     pointers.current.set(event.pointerId, pointerPoint(event))
@@ -154,7 +158,7 @@ function NurseryObject({ item, layout, onChange, onSave, onLayer, onReset, disab
   const stopPointer = (event: ReactPointerEvent) => event.stopPropagation()
 
   return <div
-    className="nursery-object"
+    className={`nursery-object ${selected ? 'selected' : ''}`}
     role="group"
     aria-label={`${item.name} in the nursery`}
     style={{ left: `${layout.x}%`, top: `${layout.y}%`, width: `${layout.size}px`, fontSize: `${layout.size * 0.9}px`, zIndex: layout.layer }}
@@ -164,13 +168,13 @@ function NurseryObject({ item, layout, onChange, onSave, onLayer, onReset, disab
     onPointerCancel={endGesture}
   >
     <span className="nursery-object-art" title={item.name} aria-hidden="true">{item.emoji}</span>
-    <div className="nursery-object-controls" aria-label={`${item.name} controls`}>
+    {selected && <div className="nursery-object-controls" aria-label={`${item.name} controls`}>
       <button type="button" disabled={disabled || layout.size <= 32} onPointerDown={stopPointer} onClick={() => changeSize(-8)} aria-label={`Make ${item.name} smaller`}>−</button>
       <button type="button" disabled={disabled || layout.size >= 128} onPointerDown={stopPointer} onClick={() => changeSize(8)} aria-label={`Make ${item.name} larger`}>+</button>
-      <button type="button" disabled={disabled} onPointerDown={stopPointer} onClick={() => onLayer('front')} aria-label={`Bring ${item.name} forward`}>↑</button>
-      <button type="button" disabled={disabled} onPointerDown={stopPointer} onClick={() => onLayer('back')} aria-label={`Send ${item.name} backward`}>↓</button>
+      <button type="button" disabled={disabled} onPointerDown={stopPointer} onClick={() => onLayer('front')} title="Move in front of other decorations" aria-label={`Bring ${item.name} forward`}>↑</button>
+      <button type="button" disabled={disabled} onPointerDown={stopPointer} onClick={() => onLayer('back')} title="Move behind other decorations" aria-label={`Send ${item.name} backward`}>↓</button>
       <button type="button" disabled={disabled} onPointerDown={stopPointer} onClick={onReset} aria-label={`Reset ${item.name}`}>↺</button>
-    </div>
+    </div>}
   </div>
 }
 
@@ -246,13 +250,22 @@ function App() {
   const [error, setError] = useState('')
   const [tab, setTab] = useState<Tab>('all')
   const [editing, setEditing] = useState(false)
+  const [decorating, setDecorating] = useState(false)
+  const [selectedObject, setSelectedObject] = useState<string | null>(null)
+  const [creaturePosition, setCreaturePosition] = useState<Point>({ x: 50, y: 16 })
+  const [creatureAction, setCreatureAction] = useState<CreatureAction>('idle')
+  const [reducedMotion, setReducedMotion] = useState(false)
   const [name, setName] = useState('')
   const [color, setColor] = useState('')
   const [layoutOverrides, setLayoutOverrides] = useState<Record<string, Layout>>({})
   const [reward, setReward] = useState<Item | null>(null)
   const [opening, setOpening] = useState(false)
   const selectedRef = useRef(selected)
+  const openingChestRef = useRef(false)
+  const creatureActionTimeout = useRef<number | undefined>(undefined)
+  const idleBehaviorTimeout = useRef<number | undefined>(undefined)
   selectedRef.current = selected
+  const profile = details?.profile.id === selected ? details.profile : undefined
 
   const loadProfiles = useCallback(async () => {
     setLoading(true)
@@ -289,6 +302,20 @@ function App() {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [editing, reward, busy])
+  useEffect(() => {
+    const preference = window.matchMedia?.('(prefers-reduced-motion: reduce)')
+    if (!preference) return
+    const update = () => setReducedMotion(preference.matches)
+    update()
+    preference.addEventListener?.('change', update)
+    return () => preference.removeEventListener?.('change', update)
+  }, [])
+  useEffect(() => {
+    setCreaturePosition({ x: 50, y: 16 })
+    setCreatureAction('idle')
+    setSelectedObject(null)
+    setDecorating(false)
+  }, [profile?.id])
 
   const refresh = async (id: string | number) => {
     const data = await request<Details>(`profiles/${encodeURIComponent(id)}`)
@@ -308,13 +335,55 @@ function App() {
     } catch (e) { setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.'); return false }
     finally { setBusy(false) }
   }
+  const animateCreature = useCallback((action: CreatureAction, duration = 1100) => {
+    if (creatureActionTimeout.current !== undefined) window.clearTimeout(creatureActionTimeout.current)
+    setCreatureAction(action)
+    if (action !== 'idle') {
+      creatureActionTimeout.current = window.setTimeout(() => setCreatureAction('idle'), duration)
+    }
+  }, [])
+  useEffect(() => () => {
+    if (creatureActionTimeout.current !== undefined) window.clearTimeout(creatureActionTimeout.current)
+    if (idleBehaviorTimeout.current !== undefined) window.clearTimeout(idleBehaviorTimeout.current)
+  }, [])
+  useEffect(() => {
+    if (!profile || decorating || reducedMotion || busy) return
+    const wander = () => {
+      setCreaturePosition({ x: 12 + Math.random() * 76, y: 13 + Math.random() * 12 })
+      animateCreature('walking', 950)
+      if (Math.random() < 0.45) {
+        idleBehaviorTimeout.current = window.setTimeout(() => animateCreature(Math.random() < 0.5 ? 'sitting' : 'waving', 1500), 1000)
+      }
+    }
+    const interval = window.setInterval(wander, 10000)
+    return () => {
+      window.clearInterval(interval)
+      if (idleBehaviorTimeout.current !== undefined) window.clearTimeout(idleBehaviorTimeout.current)
+    }
+  }, [animateCreature, busy, decorating, profile, reducedMotion])
+  const directCreature = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (decorating) {
+      if (!(event.target as HTMLElement).closest('.nursery-object')) setSelectedObject(null)
+      return
+    }
+    const target = event.target as HTMLElement
+    if (target.closest('.nursery-object, .room-creature') || !target.closest('.room-floor, .rug')) return
+    const bounds = event.currentTarget.getBoundingClientRect()
+    setCreaturePosition({
+      x: clamp((event.clientX - bounds.left) / Math.max(bounds.width, 1) * 100, 12, 88),
+      y: clamp((event.clientY - bounds.top) / Math.max(bounds.height, 1) * 100 - 65, 12, 25),
+    })
+    animateCreature('walking', 950)
+  }
   const openChest = async () => {
-    if (selected === null || busy || opening) return
+    if (selected === null || busy || openingChestRef.current) return
+    openingChestRef.current = true
     setBusy(true)
     setError('')
     setOpening(true)
     try {
       const result = await request<{ item: Item; profile: Profile }>(`profiles/${encodeURIComponent(selected)}/open-chest`, { method: 'POST' })
+      animateCreature('celebrating', 1800)
       setDetails(current => current ? { profile: result.profile, items: current.items.map(item => item.id === result.item.id ? result.item : item) } : current)
       setProfiles(current => current.map(p => p.id === selected ? result.profile : p))
       try { await refresh(selected) }
@@ -322,9 +391,8 @@ function App() {
       await new Promise(resolve => window.setTimeout(resolve, 750))
       setReward(result.item)
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not open the chest.') }
-    finally { setOpening(false); setBusy(false) }
+    finally { openingChestRef.current = false; setOpening(false); setBusy(false) }
   }
-  const profile = details?.profile.id === selected ? details.profile : undefined
   const items = profile ? details?.items ?? [] : []
   const visible = items.filter(item => item.owned && (tab === 'all' || item.category === tab))
   const placed = items.filter(item => item.owned && item.placed && (item.category === 'toy' || item.category === 'furniture' || item.category === 'decoration'))
@@ -355,7 +423,9 @@ function App() {
     persistLayout(item, { ...layout, layer })
   }
 
-  return <div className="app-shell">
+  return <div className="app-shell" onClick={event => {
+    if (decorating && !(event.target as HTMLElement).closest('.nursery-object')) setSelectedObject(null)
+  }}>
     <header className="topbar">
       <div className="brand"><span className="brand-mark"><DecorIcon kind="sparkle" /></span><span>Questboard<span className="brand-dot">.</span></span></div>
       <div className="top-note"><span>☀</span> A little world of wonderful</div>
@@ -374,16 +444,20 @@ function App() {
         {loadingDetails ? <div className="state-card" role="status">Getting their cozy corner ready…</div> : profile && <div className="dashboard">
           <section className="nursery card">
             <div className="card-title"><div><div className="eyebrow">HOME SWEET HOME</div><h2>{profile.name}’s little corner <DecorIcon kind="sparkle" /></h2><p>A cozy place to just be you.</p></div><button className="text-button" onClick={() => { setName(profile.name); setColor(profile.color); setEditing(true) }}>✎ <span>Make it yours</span></button></div>
-            <div className="room" role="group" aria-label="Nursery play area" aria-describedby="nursery-edit-help">
+            <div className="room" role="group" aria-label="Nursery play area" aria-describedby="nursery-edit-help" onClick={directCreature}>
               <div className="room-sun"><DecorIcon kind="sun" /></div><div className="wall-frame"><DecorIcon kind="flower" /></div><div className="wall-stars"><DecorIcon kind="sparkle" /><DecorIcon kind="sparkle" /></div><div className="bunting" aria-hidden="true" />
               <div className="window"><div className="window-sky">☁ <span>☀</span></div><div className="window-cross" /></div>
               <div className="room-floor" /><div className="rug" />
-              <div className="room-creature"><Creature profile={profile} />{equipped.map(item => <WearableArt key={item.id} item={item} species={profile.species} wearer={profile.name} />)}</div>
+              <button type="button" className={`room-creature creature-${creatureAction}`} style={{ left: `${creaturePosition.x}%`, top: `${creaturePosition.y}%` }} aria-label={`Make ${profile.name} happy`} onClick={() => { if (!decorating) animateCreature('happy') }}>
+                <span className="creature-body"><Creature profile={profile} />{equipped.map(item => <WearableArt key={item.id} item={item} species={profile.species} wearer={profile.name} />)}</span>
+              </button>
               {placedObjects.map(({ item, layout }) => <NurseryObject
                 key={item.id}
                 item={item}
                 layout={layout}
-                disabled={busy}
+                disabled={busy || !decorating}
+                selected={decorating && selectedObject === objectKey(profile.id, item.id)}
+                onSelect={() => setSelectedObject(objectKey(profile.id, item.id))}
                 onChange={next => setLayoutOverrides(current => ({ ...current, [objectKey(profile.id, item.id)]: next }))}
                 onSave={next => persistLayout(item, next)}
                 onLayer={direction => changeLayer(item, layout, direction)}
@@ -391,7 +465,11 @@ function App() {
               />)}
               <div className="room-label"><span>♥</span> {profile.name} is happy you’re here!</div>
             </div>
-            <p className="nursery-edit-help" id="nursery-edit-help">Drag toys, furniture, and decor to arrange them; use two fingers to resize. Each item also has resize, layer, and reset buttons.</p>
+            <div className="nursery-mode" role="group" aria-label="Nursery mode">
+              <button type="button" aria-pressed={!decorating} onClick={() => { setDecorating(false); setSelectedObject(null) }}>Play</button>
+              <button type="button" aria-pressed={decorating} onClick={() => { setDecorating(true); setSelectedObject(null) }}>Decorate</button>
+            </div>
+            <p className="nursery-edit-help" id="nursery-edit-help">{decorating ? 'Tap a decoration to select it, then drag or use its controls. ↑ moves it in front; ↓ moves it behind. Tap elsewhere to hide the controls.' : 'Tap the floor to guide your friend, or tap them to say hello.'}</p>
             <div className="nursery-footer"><div><span className="sparkle-circle"><DecorIcon kind="sparkle" /></span><span><strong>Looking lovely!</strong><small>{equipped.length ? `${equipped.length} special ${equipped.length === 1 ? 'thing' : 'things'} worn` : 'Dress up your friend below'}</small></span></div><span className="tiny-heart">♡</span></div>
           </section>
           <aside className="adventure card"><div className="eyebrow">A LITTLE SURPRISE</div><h2>Treasure awaits <DecorIcon kind="sparkle" /></h2><p>Every little achievement deserves a little magic.</p><div className={`chest-scene ${opening ? 'is-opening' : ''}`}><span className="chest-sparkle one"><DecorIcon kind="sparkle" /></span><span className="chest-sparkle two"><DecorIcon kind="sparkle" /></span><span className="chest-sparkle three"><DecorIcon kind="sparkle" /></span><Chest open={opening} /></div><div className="chest-count"><strong>{profile.chests}</strong> {profile.chests === 1 ? 'chest' : 'chests'} waiting for you</div><button className="primary-button" disabled={busy || profile.chests < 1} onClick={() => void openChest()}>{opening ? 'A little magic…' : <><DecorIcon kind="sparkle" /> Open a chest</>}</button><button className="earn-button" disabled={busy} onClick={() => void mutate(`profiles/${encodeURIComponent(profile.id)}/simulate-reward`)}>＋ Earn a chest <span>(just for fun!)</span></button></aside>

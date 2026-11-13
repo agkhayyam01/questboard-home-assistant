@@ -10,12 +10,13 @@ own saved creature, chests, and collection.
 
 Choose a profile, name and customize its creature, then use the simulated reward
 button to earn a chest. Open it for a collectible and use your collection to
-equip clothes and accessories or place toys, furniture, and decorations. Drag
-or pinch nursery objects to arrange them; each object also has accessible
-resize, layering, and reset controls. Layouts are saved separately for each
-friend. Rewards are
-selected from items the player does not already own; when the collection is
-complete, no chest is consumed attempting to open it.
+equip clothes and accessories or place toys, furniture, and decorations. In
+Play mode, creatures wander occasionally; tap the floor to guide them and tap
+your creature for a happy reaction. Switch to Decorate mode to pause wandering
+and edit the nursery. Select an object to show its resize, layering, and reset
+controls; drag or pinch objects to arrange them. Layouts are saved separately
+for each friend. Rewards are selected from items the player does not already
+own; when the collection is complete, no chest is consumed attempting to open it.
 
 This first version uses **simulated rewards only**. It does not read or modify
 Home Assistant entities, chores, automations, or reminders. Medication tasks
