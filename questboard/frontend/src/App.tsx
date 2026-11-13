@@ -13,7 +13,7 @@ type Details = { profile: Profile; items: Item[] }
 type Tab = 'all' | 'outfit' | 'accessory' | 'toy' | 'furniture' | 'decoration'
 type Point = { x: number; y: number }
 type CreatureAction = 'idle' | 'walking' | 'running' | 'hopping' | 'happy' | 'sitting' | 'sleeping' | 'curious' | 'excited' | 'wake' | 'waving' | 'celebrating'
-type Travel = { x: number; y: number; fromX: number; fromY: number; duration: number }
+type Travel = { x: number; y: number; fromX: number; fromY: number; duration: number; startedAt: number }
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 const defaultSlots: Point[] = [
@@ -173,6 +173,7 @@ function NurseryObject({ item, layout, onChange, onSave, onLayer, onReset, onSel
     onPointerCancel={endGesture}
     onClick={() => { if (disabled) onInteract() }}
     onKeyDown={event => {
+      if (event.target !== event.currentTarget) return
       if (event.key !== 'Enter' && event.key !== ' ') return
       event.preventDefault()
       if (disabled) onInteract()
@@ -254,11 +255,36 @@ function App() {
   const openingChestRef = useRef(false)
   const creatureActionTimeout = useRef<number | undefined>(undefined)
   const idleBehaviorTimeout = useRef<number | undefined>(undefined)
+  const roomCreatureRef = useRef<HTMLButtonElement>(null)
+  const creatureTravelRef = useRef(creatureTravel)
   const creaturePositionRef = useRef(creaturePosition)
   const placedObjectsRef = useRef<{ item: Item; layout: Layout }[]>([])
   creaturePositionRef.current = creaturePosition
   selectedRef.current = selected
   const profile = details?.profile.id === selected ? details.profile : undefined
+  const updateCreatureTravel = (travel: Travel | null) => {
+    creatureTravelRef.current = travel
+    setCreatureTravel(travel)
+  }
+  const currentCreaturePosition = () => {
+    const travel = creatureTravelRef.current
+    if (!travel) return creaturePositionRef.current
+    const creature = roomCreatureRef.current
+    const room = creature?.parentElement?.getBoundingClientRect()
+    const bounds = creature?.getBoundingClientRect()
+    if (room && bounds && room.width > 0 && room.height > 0) {
+      return {
+        x: clamp((bounds.left - room.left + bounds.width / 2) / room.width * 100, 8, 92),
+        y: clamp((bounds.top - room.top) / room.height * 100, 10, 35),
+      }
+    }
+    const progress = clamp((Date.now() - travel.startedAt) / travel.duration, 0, 1)
+    const eased = progress * progress * (3 - 2 * progress)
+    return {
+      x: travel.fromX + (travel.x - travel.fromX) * eased,
+      y: travel.fromY + (travel.y - travel.fromY) * eased,
+    }
+  }
 
   const loadProfiles = useCallback(async () => {
     setLoading(true)
@@ -308,7 +334,7 @@ function App() {
     creaturePositionRef.current = start
     setCreaturePosition(start)
     setCreatureAction('idle')
-    setCreatureTravel(null)
+    updateCreatureTravel(null)
     setCreatureFacing('right')
     setSelectedObject(null)
     setDecorating(false)
@@ -335,25 +361,30 @@ function App() {
   const animateCreature = useCallback((action: CreatureAction, duration = 1100) => {
     if (creatureActionTimeout.current !== undefined) window.clearTimeout(creatureActionTimeout.current)
     setCreatureAction(action)
-    setCreatureTravel(null)
+    if (creatureTravelRef.current) {
+      const current = currentCreaturePosition()
+      creaturePositionRef.current = current
+      setCreaturePosition(current)
+    }
+    updateCreatureTravel(null)
     if (action !== 'idle') {
       creatureActionTimeout.current = window.setTimeout(() => setCreatureAction('idle'), duration)
     }
   }, [])
   const moveCreature = (target: Point, action: 'walking' | 'running' | 'hopping' = 'walking', settledAction: CreatureAction = 'idle') => {
-    const origin = creaturePositionRef.current
+    const origin = currentCreaturePosition()
     const delta = distance(origin, target)
     const duration = reducedMotion ? 0 : clamp(Math.round(delta * (action === 'running' ? 16 : 22)), 650, 1900)
     const destination = { x: clamp(target.x, 8, 92), y: clamp(target.y, 10, 35) }
     if (creatureActionTimeout.current !== undefined) window.clearTimeout(creatureActionTimeout.current)
     setCreatureFacing(destination.x < origin.x ? 'left' : 'right')
-    setCreatureTravel(duration ? { ...destination, fromX: origin.x, fromY: origin.y, duration } : null)
+    updateCreatureTravel(duration ? { ...destination, fromX: origin.x, fromY: origin.y, duration, startedAt: Date.now() } : null)
     creaturePositionRef.current = destination
     setCreaturePosition(destination)
     setCreatureAction(duration ? action : settledAction)
     if (duration) {
       creatureActionTimeout.current = window.setTimeout(() => {
-        setCreatureTravel(null)
+        updateCreatureTravel(null)
         setCreatureAction(settledAction)
         if (settledAction !== 'idle') {
           creatureActionTimeout.current = window.setTimeout(() => setCreatureAction('idle'), 2600)
@@ -368,7 +399,7 @@ function App() {
     if (idleBehaviorTimeout.current !== undefined) window.clearTimeout(idleBehaviorTimeout.current)
   }, [])
   useEffect(() => {
-    if (!profile || decorating || busy) return
+    if (!profile || decorating || reducedMotion || busy) return
     const species = profile.species.toLowerCase()
     const chooseBehavior = () => {
       const objects = placedObjectsRef.current
@@ -506,7 +537,7 @@ function App() {
               <div className="room-sun"><DecorIcon kind="sun" /></div><div className="wall-frame"><DecorIcon kind="flower" /></div><div className="wall-stars"><DecorIcon kind="sparkle" /><DecorIcon kind="sparkle" /></div><div className="bunting" aria-hidden="true" />
               <div className="window"><div className="window-sky">☁ <span>☀</span></div><div className="window-cross" /></div>
               <div className="room-floor" /><div className="rug" />
-              <button type="button" className={`room-creature creature-${creatureAction} creature-facing-${creatureFacing}`} style={{
+              <button ref={roomCreatureRef} type="button" className={`room-creature creature-${creatureAction} creature-facing-${creatureFacing}`} style={{
                 left: `${creaturePosition.x}%`, top: `${creaturePosition.y}%`,
                 '--travel-from-x': `${creatureTravel?.fromX ?? creaturePosition.x}%`,
                 '--travel-from-y': `${creatureTravel?.fromY ?? creaturePosition.y}%`,
