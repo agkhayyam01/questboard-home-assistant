@@ -1,0 +1,39 @@
+
+name: Questboard Development Dispatcher
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_title:
+        description: 'Title for the new GitHub issue'
+        required: true
+        type: string
+        default: 'Questboard dispatcher test — safe to close'
+      issue_body:
+        description: 'Issue description'
+        required: true
+        type: string
+        default: 'This is a test of the Questboard Development Dispatcher. No code changes or deployment are requested.'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  create-issue:
+    name: Create issue
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE_TITLE: ${{ inputs.issue_title }}
+          ISSUE_BODY: ${{ inputs.issue_body }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          issue_url=$(gh issue create --title "$ISSUE_TITLE" --body "$ISSUE_BODY")
+          echo "Created issue: $issue_url"
+          echo "### Questboard dispatcher" >> "$GITHUB_STEP_SUMMARY"
+          echo "Created issue: $issue_url" >> "$GITHUB_STEP_SUMMARY"
