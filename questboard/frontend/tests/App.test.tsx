@@ -331,14 +331,17 @@ describe('Questboard frontend', () => {
     await waitFor(() => expect(creature?.classList.contains('creature-walking')).toBe(true))
     await waitFor(() => expect(document.querySelector('.room-creature .creature')?.getAttribute('data-action')).toBe('sleeping'), { timeout: 2000 })
     expect(creature?.classList.contains('creature-in-bed')).toBe(true)
+    expect(document.querySelector('.room-label')?.classList.contains('room-label-interacting')).toBe(true)
     const artwork = document.querySelector('.room-creature .creature')!
     expect(artwork.getAttribute('data-pose')).toBe('reclined')
     expect(artwork.querySelector('.creature-bed-head')).not.toBeNull()
-    expect(artwork.querySelector('.creature-bed-head')?.getAttribute('transform')).toBe('translate(-35 -12)')
-    expect(artwork.querySelector('.creature-bed-body')?.getAttribute('transform')).toContain('scale(1.15 .85)')
-    expect(artwork.querySelector('.creature-head')?.getAttribute('transform')).toBe('translate(-35 -12)')
+    expect(artwork.querySelector('.creature-bed-head')?.getAttribute('transform')).toBe('translate(-8 6) rotate(-18 110 105)')
+    expect(artwork.querySelector('.creature-bed-body')?.getAttribute('transform')).toContain('scale(1.2 .85)')
+    expect(artwork.querySelector('.creature-head')?.getAttribute('transform')).toBe('translate(-8 6) rotate(-18 110 105)')
     expect(artwork.querySelector('.creature-bed-pillow')).not.toBeNull()
-    expect(artwork.querySelector('.creature-bedding')?.parentElement).toBe(artwork)
+    const bedding = artwork.querySelector('.creature-bedding')!
+    const head = artwork.querySelector('.creature-head')!
+    expect([...artwork.children].indexOf(bedding)).toBeLessThan([...artwork.children].indexOf(head))
     expect(bed.getAttribute('style')).toContain('width: 120px')
     await waitFor(() => expect(bed.classList.contains('object-interacting-furniture')).toBe(true), { timeout: 2000 })
   })
@@ -406,8 +409,13 @@ describe('Questboard frontend', () => {
     fireEvent.click(ball)
     await waitFor(() => expect(ball.classList.contains('object-interacting-ball')).toBe(true), { timeout: 2500 })
     await waitFor(() => expect(creature.getAttribute('data-action')).toBe('playing'))
-    expect(ball.getAttribute('style')).toContain('--roll-distance:')
+    expect(ball.getAttribute('style')).toContain('--roll-distance: clamp(-64px, -6vw, -24px)')
     expect(creature.getAttribute('data-action')).toBe('playing')
+    const creatureContainer = document.querySelector('.room-creature')!
+    await waitFor(() => expect(creature.getAttribute('data-action')).toBe('running'), { timeout: 5000 })
+    expect(Number(creatureContainer.style.getPropertyValue('--travel-to-x').replace('%', '')))
+      .toBeLessThan(Number(creatureContainer.style.getPropertyValue('--travel-from-x').replace('%', '')))
+    await waitFor(() => expect(ball.classList.contains('interaction-phase-recovery')).toBe(true), { timeout: 5000 })
 
     await user.click(within(screen.getByText('Stuffed Bunny').closest('article')!).getByRole('button', { name: /Place/ }))
     const plush = await screen.findByRole('group', { name: 'Stuffed Bunny in the nursery' })

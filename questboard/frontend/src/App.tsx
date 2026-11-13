@@ -208,7 +208,7 @@ function NurseryObject({ item, layout, onChange, onSave, onLayer, onReset, onSel
     role="group"
     aria-label={`${item.name} in the nursery`}
     tabIndex={0}
-    style={{ left: `${layout.x}%`, top: `${layout.y}%`, width: `${layout.size}px`, fontSize: `${layout.size * 0.9}px`, zIndex: layout.layer, '--roll-distance': interactionDirection === 'left' ? '-42px' : '42px' } as CSSProperties}
+    style={{ left: `${layout.x}%`, top: `${layout.y}%`, width: `${layout.size}px`, fontSize: `${layout.size * 0.9}px`, zIndex: layout.layer, '--roll-distance': interactionDirection === 'left' ? 'clamp(-64px, -6vw, -24px)' : 'clamp(24px, 6vw, 64px)' } as CSSProperties}
     onPointerDown={beginGesture}
     onPointerMove={moveGesture}
     onPointerUp={endGesture}
@@ -662,10 +662,12 @@ function App() {
           y: clamp(layout.y + creatureWidth / 2 / room.height * 100, 74, 94),
         }
       : approachPoint(layout)
-    const origin = currentCreaturePosition()
     setActiveInteraction(kind)
     setInteractionPhase('approach')
-    setInteractionDirection(origin.x >= layout.x ? 'right' : 'left')
+    const creatureOnRight = target.x >= layout.x
+    setInteractionDirection(kind === 'ball'
+      ? creatureOnRight ? 'left' : 'right'
+      : creatureOnRight ? 'right' : 'left')
     const travelTime = reducedMotion ? 0 : clamp(Math.round(distance(currentCreaturePosition(), target) * 22), 650, 1900)
     const key = objectKey(profile.id, item.id)
     moveCreature(target, kind === 'ball' || kind === 'plush' ? 'hopping' : 'walking')
@@ -679,10 +681,16 @@ function App() {
 
         if (kind === 'ball') {
           scheduleInteraction(version, () => {
-            const direction = origin.x >= layout.x ? 1 : -1
+            const fromRight = target.x >= layout.x
+            const direction = fromRight ? -1 : 1
             const roomWidth = roomRef.current?.getBoundingClientRect().width ?? 0
+            const rollDistance = clamp(window.innerWidth * 0.06, 24, 64)
+            const rollOffset = roomWidth > 0 ? rollDistance / roomWidth * 100 : 8
+            const sideOffset = roomWidth > 0
+              ? (layout.size / 2 + creatureWidth / 2 + 8) / roomWidth * 100
+              : 13
             const follow = {
-              x: clamp(layout.x + direction * (roomWidth > 0 ? 68 / roomWidth * 100 : 12), horizontalBounds().min, horizontalBounds().max),
+              x: clamp(layout.x + direction * rollOffset + (fromRight ? sideOffset : -sideOffset), horizontalBounds().min, horizontalBounds().max),
               y: target.y,
             }
             const followDuration = reducedMotion ? 0 : clamp(Math.round(distance(currentCreaturePosition(), follow) * 16), 650, 1900)
@@ -911,7 +919,7 @@ function App() {
                 canInteract={interactionFor(item) !== null}
                 onInteract={() => { if (!busy && !decorating) interactWithObject(item, layout) }}
               />)}
-              <div className="room-label"><span>♥</span> {affectionMessage || `${profile.name} is happy you’re here!`}</div>
+              <div className={`room-label ${activeInteraction ? 'room-label-interacting' : ''}`}><span>♥</span> {affectionMessage || `${profile.name} is happy you’re here!`}</div>
             </div>
             <div className="nursery-mode" role="group" aria-label="Nursery mode">
               <button type="button" aria-pressed={!decorating} onClick={() => { setDecorating(false); setSelectedObject(null) }}>Play</button>

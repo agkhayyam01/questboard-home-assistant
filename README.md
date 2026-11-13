@@ -57,21 +57,22 @@ results; no Home Assistant instance was used.
 
 ### Visual acceptance follow-up
 
-Updated screenshots from the rendered app after the visual review corrections.
-The phone capture uses a 390px viewport with disposable data and no saved layout
-rows; compact positions are presentation defaults and are not written to the
-profile. Existing saved layouts continue to take precedence.
-
-The sleep and hug close-ups were captured from the running app only after the
-browser confirmed `data-action="sleeping"` with Remy in bed and
-`data-action="hugging"` with the floor toy hidden and attached to Remy. The short
-recording shows both live interaction sequences.
+Fresh close-ups and a live ball-play recording from the rendered app after the
+visual review corrections. The sleep screenshot was captured only while the
+browser confirmed `data-action="sleeping"` and `data-pose="reclined"` with a
+pillow and quilt rendered. The hug screenshot was captured only while
+`data-action="hugging"` with the floor toy hidden and the teddy drawn between
+Remy’s arms. The 5.1-second browser recording shows the ball approach, roll and
+rotation, Remy’s chase, and recovery. These checks used disposable local data;
+the profile, inventory, and saved layouts were unchanged. The accepted 390px
+phone capture remains unchanged; compact defaults are presentation-only and
+saved layouts continue to take precedence.
 
 | Review item | Updated rendered evidence |
 |---|---|
-| Remy tucked into the bed with a pillow and visible quilt | ![Remy tucked under the quilt](screenshots/questboard-041-bed-sleeping.png) |
-| Teddy visibly held between Remy’s wrapping arms | ![Remy hugging the teddy](screenshots/questboard-041-plush-hug.png) |
-| Sleep and hug interaction sequences | [Rendered browser recording](screenshots/questboard-041-sleep-hug-interactions.webm) |
+| Remy reclined in bed with a pillow and quilt | ![Remy asleep under the quilt](screenshots/questboard-042-bed-sleeping.png) |
+| Teddy visibly held between Remy’s wrapping arms | ![Remy hugging the teddy](screenshots/questboard-042-plush-hug.png) |
+| Ball approach, roll, chase, and recovery | [5.1-second live browser recording](screenshots/questboard-042-ball-play.webm) |
 | Separated default objects and character on an iPhone-sized screen | ![Nursery layout at 390px](screenshots/questboard-041-iphone-layout.png) |
 
 ## Play

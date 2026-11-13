@@ -38,6 +38,7 @@
 @keyframes decoration-notice{50%{transform:rotate(8deg) scale(1.08)}}
 @keyframes treat-to-mouth{0%{opacity:0;transform:translate(34px,40px) scale(1.1)}15%{opacity:1}78%{opacity:1;transform:translate(3px,4px) scale(.8)}100%{opacity:0;transform:translate(0,0) scale(.15)}}
 @media(max-width:520px){.treat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.daily-treats{grid-template-columns:1fr}.daily-treats small{grid-column:1}.treats-modal{padding:25px 19px}.feed-button{font-size:11px}}
+.room-label.room-label-interacting{top:10px;bottom:auto}
 @media(prefers-reduced-motion:reduce){.nursery-object.object-interacting .nursery-object-art,.feeding-treat{animation:none!important}}
 .nursery-object.object-interacting-painting .nursery-object-art{animation:painting-admire .55s ease-in-out 3}
 .nursery-object.object-interacting-ball .nursery-object-art{animation:ball-roll .95s cubic-bezier(.25,.65,.4,1) both}
