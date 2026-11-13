@@ -330,7 +330,7 @@ describe('Questboard frontend', () => {
     await waitFor(() => expect(creature?.classList.contains('creature-walking')).toBe(true))
     await waitFor(() => expect(document.querySelector('.room-creature .creature')?.getAttribute('data-action')).toBe('sleeping'), { timeout: 2000 })
     expect(creature?.classList.contains('creature-in-bed')).toBe(true)
-    expect(bed.getAttribute('style')).toContain('width: 76px')
+    expect(bed.getAttribute('style')).toContain('width: 96px')
     await waitFor(() => expect(bed.classList.contains('object-interacting-furniture')).toBe(true), { timeout: 2000 })
   })
 

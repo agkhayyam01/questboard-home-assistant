@@ -26,6 +26,35 @@ Captured nursery scenes from the running app:
 | Bedtime | ![Remy sleeping in bed](screenshots/questboard-031-bed.png) |
 | Stuffed-animal hug | ![Remy hugging a stuffed animal](screenshots/questboard-031-plush.png) |
 
+## 0.4.0 release notes and visual verification
+
+Questboard 0.4.0 reduces the displayed character size while preserving the
+grounded pose, gives Remy an opaque outlined trunk, and enlarges new default
+beds without changing saved layouts. Player-directed object interactions now
+coordinate approach, anticipation, interaction, reaction, and recovery;
+creatures climb into bed to sleep, roll and chase the ball, carry and hug the
+stuffed animal, and look up at paintings. Petting has a visible affection
+response, feeding is staged from anticipation through swallowing, and
+autonomous object visits avoid recent repeats. Existing profiles, inventory,
+treats, affection, and saved layouts are preserved; no database migration was
+required.
+
+The following are screenshots of the rendered 0.4.0 app running locally with
+disposable test data. They are visual evidence, not animation-state-only test
+results; no Home Assistant instance was used.
+
+| Check | Screenshot |
+|---|---|
+| Remy, Gigi, and Lill scaled and grounded | ![Remy grounded](screenshots/questboard-040-remy-grounded.png) ![Gigi grounded](screenshots/questboard-040-gigi-grounded.png) ![Lill grounded](screenshots/questboard-040-lill-petting.png) |
+| Opaque trunk and petting response | ![Remy trunk while being petted](screenshots/questboard-040-remy-trunk-petting.png) ![Petting feedback](screenshots/questboard-040-remy-petting.png) |
+| Larger bed and in-bed sleep pose | ![Remy asleep in bed](screenshots/questboard-040-bed-sleeping.png) |
+| Ball rolls during play | ![Ball rolling](screenshots/questboard-040-ball-roll.png) |
+| Stuffed animal is picked up and hugged | ![Remy hugging the teddy](screenshots/questboard-040-plush-hug.png) |
+| Painting admiration | ![Remy admiring the painting](screenshots/questboard-040-painting-admiration.png) |
+| Feeding sequence, including the treat entering the mouth | ![Remy eating a strawberry](screenshots/questboard-040-feeding.png) |
+| Autonomous object interaction | ![Autonomous ball play](screenshots/questboard-040-autonomous.png) |
+| iPhone-sized nursery layout (390px viewport) | ![Questboard nursery on a phone-sized viewport](screenshots/questboard-040-iphone-nursery.png) |
+
 ## Play
 
 Choose a profile, name and customize its creature, then use the simulated reward
@@ -62,6 +91,16 @@ no workflow bypasses review rules or failed checks.
 ## Install on Home Assistant Green
 
 Do not install or deploy until you are ready to try the game:
+
+### 0.4.0 deployment checklist (not performed)
+
+- [ ] Create and verify a Questboard-only backup of its persistent data.
+- [ ] Review the release notes, screenshots, and any remaining limitations.
+- [ ] Obtain separate, explicit user approval before installation.
+- [ ] Confirm the backup can be restored and the target supports ARM64.
+- [ ] Only after approval, install and verify ingress and data persistence.
+
+No Home Assistant deployment or installation was performed for this release.
 
 1. In Home Assistant, open **Settings → Apps → App Store** (on older versions,
    **Settings → Add-ons → Add-on Store**).

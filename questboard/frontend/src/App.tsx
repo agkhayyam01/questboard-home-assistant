@@ -38,7 +38,7 @@ const defaultLayout = (index: number, item?: Item): Layout => {
   const bed = furniture && /bed|sofa|couch|hammock/.test(item.name.toLowerCase())
   return {
     ...(bed ? { x: 80, y: 73 } : defaultSlots[index % defaultSlots.length]),
-    size: bed ? 76 : furniture ? 56 : 40,
+    size: bed ? 96 : furniture ? 56 : 40,
     layer: 10 + index,
   }
 }
