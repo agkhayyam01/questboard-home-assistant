@@ -51,3 +51,14 @@
 @keyframes plush-pickup{0%,100%{transform:translate(0,0) scale(1)}20%,82%{transform:translate(var(--roll-distance),-54px) scale(.72)}45%,62%{transform:translate(var(--roll-distance),-54px) scale(.72) rotate(9deg)}}
 @keyframes treat-to-mouth{0%{opacity:0;transform:translate(31px,18px) scale(1.1)}15%{opacity:1}72%{opacity:1;transform:translate(7px,3px) scale(.8)}100%{opacity:0;transform:translate(0,0) scale(.12)}}
 @media(prefers-reduced-motion:reduce){.creature-body>.feeding-treat{animation:none!important;transform:none}}
+.room-creature.creature-bed-interaction{z-index:20}
+.room-creature .carried-plush{position:absolute;z-index:4;left:67%;top:61%;font-size:27px;line-height:1;filter:drop-shadow(0 2px 2px #8f6e5c55);animation:plush-sway .7s ease-in-out infinite alternate}
+.nursery-object.object-picked-up .nursery-object-art{visibility:hidden}
+.nursery-object.interaction-phase-anticipation .nursery-object-art{animation:object-anticipate .4s ease-in-out 2}
+.nursery-object.object-interacting-ball.interaction-phase-interaction .nursery-object-art{animation:ball-roll .95s cubic-bezier(.25,.65,.4,1) both}
+.nursery-object.object-interacting-bed.interaction-phase-interaction .nursery-object-art{animation:bed-settle .75s ease-in-out 2}
+.nursery-object.object-interacting-plush.interaction-phase-interaction .nursery-object-art{animation:plush-pickup 2.4s ease-in-out both}
+.nursery-object.object-interacting-painting.interaction-phase-interaction .nursery-object-art{animation:painting-admire .55s ease-in-out 3}
+@keyframes object-anticipate{50%{transform:translateY(-3px) scale(1.04)}}
+@keyframes plush-sway{to{transform:rotate(8deg) translateY(-2px)}}
+@media(prefers-reduced-motion:reduce){.room-creature .carried-plush,.nursery-object.interaction-phase-anticipation .nursery-object-art{animation:none!important}}

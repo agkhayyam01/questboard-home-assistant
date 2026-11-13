@@ -134,7 +134,7 @@ function createApi() {
     return Response.json({ error: `Unexpected request: ${key}` }, { status: 400 })
   })
   vi.stubGlobal('fetch', fetchMock)
-  return { fetchMock, failNext }
+  return { fetchMock, failNext, data }
 }
 
 beforeEach(() => {
@@ -329,7 +329,25 @@ describe('Questboard frontend', () => {
     const creature = document.querySelector('.room-creature')
     await waitFor(() => expect(creature?.classList.contains('creature-walking')).toBe(true))
     await waitFor(() => expect(document.querySelector('.room-creature .creature')?.getAttribute('data-action')).toBe('sleeping'), { timeout: 2000 })
+    expect(creature?.classList.contains('creature-in-bed')).toBe(true)
+    expect(bed.getAttribute('style')).toContain('width: 76px')
     await waitFor(() => expect(bed.classList.contains('object-interacting-furniture')).toBe(true), { timeout: 2000 })
+  })
+
+  it('keeps a saved bed layout instead of applying the larger default', async () => {
+    const { data } = createApi()
+    data[1].items.find(item => item.id === 'cozy-bed')!.layout = { x: 64, y: 76, size: 104, layer: 25 }
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByText('Clover’s little corner')
+    await user.click(screen.getByRole('button', { name: /Blair/ }))
+    await screen.findByText('Pebble’s little corner')
+
+    const bed = screen.getByRole('group', { name: 'Cozy Bed in the nursery' })
+    expect(bed.getAttribute('style')).toContain('left: 64%')
+    expect(bed.getAttribute('style')).toContain('top: 76%')
+    expect(bed.getAttribute('style')).toContain('width: 104px')
+    expect(bed.getAttribute('style')).toContain('z-index: 25')
   })
 
   it('coordinates painting, rolling-ball, and stuffed-animal interactions', async () => {
@@ -343,6 +361,7 @@ describe('Questboard frontend', () => {
     const painting = await screen.findByRole('group', { name: 'Flower Painting in the nursery' })
     fireEvent.click(painting)
     await waitFor(() => expect(painting.classList.contains('object-interacting-painting')).toBe(true), { timeout: 2500 })
+    await waitFor(() => expect(creature.getAttribute('data-action')).toBe('admiring'))
     expect(creature.getAttribute('data-action')).toBe('admiring')
     fireEvent.click(document.querySelector('.room-floor')!, { clientX: 300, clientY: 250 })
     expect(painting.classList.contains('object-interacting')).toBe(false)
@@ -353,6 +372,7 @@ describe('Questboard frontend', () => {
     const ball = await screen.findByRole('group', { name: 'Bouncy Ball in the nursery' })
     fireEvent.click(ball)
     await waitFor(() => expect(ball.classList.contains('object-interacting-ball')).toBe(true), { timeout: 2500 })
+    await waitFor(() => expect(creature.getAttribute('data-action')).toBe('playing'))
     expect(ball.getAttribute('style')).toContain('--roll-distance:')
     expect(creature.getAttribute('data-action')).toBe('playing')
 
@@ -360,7 +380,21 @@ describe('Questboard frontend', () => {
     const plush = await screen.findByRole('group', { name: 'Stuffed Bunny in the nursery' })
     fireEvent.click(plush)
     await waitFor(() => expect(plush.classList.contains('object-interacting-plush')).toBe(true), { timeout: 2500 })
+    await waitFor(() => expect(creature.getAttribute('data-action')).toBe('hugging'))
     expect(creature.getAttribute('data-action')).toBe('hugging')
+    await waitFor(() => expect(document.querySelector('.room-creature .carried-plush')?.textContent).toBe('🧸'), { timeout: 4000 })
+    expect(plush.classList.contains('object-picked-up')).toBe(true)
+  }, 12000)
+
+  it('responds to a tap with a gentle petting animation and affection feedback', async () => {
+    createApi()
+    render(<App />)
+    await screen.findByText('Clover’s little corner')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Make Clover happy' }))
+    const creature = screen.getByRole('button', { name: 'Make Clover happy' })
+    expect(creature.classList.contains('creature-petting')).toBe(true)
+    expect(document.querySelector('.room-label')?.textContent).toContain('A little pet feels lovely!')
   })
 
   it('anchors supported accessories by species and keeps full-body outfits out of selection', async () => {
@@ -536,7 +570,11 @@ describe('Questboard frontend', () => {
         if (friend.species === 'hippo') {
           expect(svg.querySelectorAll('.creature-muzzle .creature-nostril')).toHaveLength(2)
         } else if (friend.species === 'elephant') {
-          expect(svg.querySelector('.creature-trunk path')).toBeTruthy()
+          const trunk = svg.querySelector('.creature-trunk path')!
+          expect(trunk).toBeTruthy()
+          expect(trunk.getAttribute('fill')).toBe(friend.color)
+          expect(trunk.getAttribute('stroke')).toBe('#65758b')
+          expect(trunk.getAttribute('opacity')).toBeNull()
         } else {
           expect(svg.querySelector('.creature-bow')).toBeTruthy()
           expect(svg.querySelector('.creature-lashes')).toBeTruthy()

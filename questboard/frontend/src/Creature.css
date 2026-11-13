@@ -92,3 +92,13 @@
 @keyframes trunk-feed{to{transform:rotate(-12deg) translateY(5px)}}
 @keyframes trunk-chew{50%{transform:translateY(3px) rotate(4deg)}}
 @keyframes creature-sleep-in-bed{0%,100%{transform:translateY(7px) scale(.96,.84) rotate(-4deg)}50%{transform:translateY(5px) scale(.97,.85) rotate(-4deg)}}
+.room-creature{width:100px}
+.room-creature.creature-bed-interaction{z-index:1001}
+.room-creature.creature-in-bed .creature-body{transform-origin:50% 50%}
+.room-creature.creature-in-bed.creature-sleeping .creature-body{animation:creature-sleep-in-bed 2.8s ease-in-out infinite}
+.room-creature.creature-petting .creature-head{animation:creature-pet .35s ease-in-out 3}
+.room-creature.creature-petting .creature-tail,.room-creature.creature-petting .creature-ears{animation:pet-follow-through .45s ease-in-out 3}
+@keyframes creature-sleep-in-bed{0%,100%{transform:rotate(90deg) scale(.78,.86) translateY(3px)}50%{transform:rotate(90deg) scale(.79,.88) translateY(1px)}}
+@keyframes creature-pet{50%{transform:rotate(-7deg) translateY(2px)}}
+@keyframes pet-follow-through{50%{transform:rotate(9deg) translateY(-2px)}}
+@media(max-width:520px){.room-creature{width:88px}}

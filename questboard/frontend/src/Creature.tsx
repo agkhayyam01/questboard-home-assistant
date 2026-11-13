@@ -68,11 +68,6 @@ export default function Creature({ profile, small = false, action = 'idle' }: {
     <g className="creature-arms"><path d="M75 164q-13-8-19 2m89-2q13-8 19 2" fill="none" stroke={outline} strokeWidth={hippo ? 11 : 9} strokeLinecap="round" /></g>
     <g className="creature-head">
     <ellipse cx="110" cy="105" rx={elephant ? 65 : 67} ry="62" fill={color} stroke={outline} strokeWidth="3" />
-    {elephant && <g className="creature-trunk">
-      <path d="M108 111c-8 17-11 38-1 48 10 10 25 4 25-8" fill="none" stroke={outline} strokeWidth="30" strokeLinecap="round" />
-      <path d="M108 111c-8 17-11 38-1 48 10 10 25 4 25-8" fill="none" stroke={color} strokeWidth="23" strokeLinecap="round" />
-      <ellipse cx="132" cy="151" rx="8" ry="5" fill="#765f73" />
-    </g>}
     {gigi && <g className="creature-bow" stroke="#985e71" strokeWidth="2.5" strokeLinejoin="round">
       <path d="M109 51Q92 34 85 47q-3 11 22 12m4-8q18-17 25-4 3 11-24 12Z" fill="#dc91a2" />
       <circle cx="110" cy="54" r="5" fill="#f3ce8f" />
@@ -115,6 +110,10 @@ export default function Creature({ profile, small = false, action = 'idle' }: {
       {mouthOpen && <path d="M101 143q9 7 18 0v5q-9 7-18 0Z" fill="#e8878c" />}
       </g>
     </>}
+    {elephant && <g className="creature-trunk">
+      <path d="M103 106c-9 13-16 31-9 44 5 11 17 15 28 10 9-4 15-12 14-19-1-6-7-8-11-4-3 3-1 7 2 9-2 6-9 10-14 7-7-4-4-15 0-25 4-9 8-17 12-24Z" fill={color} stroke={outline} strokeWidth="3" strokeLinejoin="round" />
+      <path d="M129 144q3-2 6 0" fill="none" stroke="#765f73" strokeWidth="2" strokeLinecap="round" />
+    </g>}
     </g>
     <path d="M90 184q20 13 40 0" fill="none" stroke="#fff" strokeOpacity=".55" strokeWidth="3" strokeLinecap="round" />
   </svg>
