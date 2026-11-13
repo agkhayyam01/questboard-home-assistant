@@ -173,7 +173,10 @@ describe('Questboard frontend', () => {
     await screen.findByText('Clover’s little corner')
     await user.click(screen.getByRole('button', { name: /Place/ }))
     const nurseryObject = await screen.findByRole('group', { name: 'Bouncy Ball in the nursery' })
+    await user.click(screen.getByRole('button', { name: 'Decorate' }))
+    fireEvent.pointerDown(nurseryObject, { pointerId: 99, pointerType: 'touch', clientX: 100, clientY: 100 })
     expect(nurseryObject.getAttribute('style')).toContain('width: 40px')
+    expect(within(nurseryObject).getByRole('button', { name: 'Send Bouncy Ball backward' }).title).toBe('Move behind other decorations')
 
     await user.click(within(nurseryObject).getByRole('button', { name: 'Make Bouncy Ball larger' }))
     await waitFor(() => expect(nurseryObject.getAttribute('style')).toContain('width: 48px'))
@@ -194,6 +197,36 @@ describe('Questboard frontend', () => {
     expect(fetchMock).toHaveBeenCalledWith('api/profiles/one%20%2F%20%3F/items/ball/layout', {
       method: 'DELETE', headers: {},
     })
+  })
+
+  it('switches between play and decorate, directs the creature, and keeps wearables equipped', async () => {
+    createApi()
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByText('Clover’s little corner')
+    const room = screen.getByRole('group', { name: 'Nursery play area' })
+    vi.spyOn(room, 'getBoundingClientRect').mockReturnValue({
+      x: 0, y: 0, left: 0, top: 0, right: 400, bottom: 300, width: 400, height: 300,
+      toJSON: () => ({}),
+    })
+    const creature = screen.getByRole('button', { name: 'Make Clover happy' })
+    fireEvent.click(creature)
+    expect(creature.classList.contains('creature-happy')).toBe(true)
+    fireEvent.click(room.querySelector('.room-floor')!, { clientX: 280, clientY: 250 })
+    expect(creature.getAttribute('style')).toContain('left: 70%')
+
+    await user.click(within(screen.getByText('Star Glasses').closest('article')!).getByRole('button', { name: /Equip/ }))
+    expect(screen.getByLabelText('Star Glasses worn by Clover')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Decorate' }))
+    expect(screen.getByRole('button', { name: 'Decorate' }).getAttribute('aria-pressed')).toBe('true')
+    await user.click(screen.getByRole('button', { name: /Place/ }))
+    const nurseryObject = await screen.findByRole('group', { name: 'Bouncy Ball in the nursery' })
+    expect(within(nurseryObject).queryByRole('button', { name: 'Bring Bouncy Ball forward' })).toBeNull()
+    fireEvent.pointerDown(nurseryObject, { pointerId: 99, pointerType: 'touch', clientX: 100, clientY: 100 })
+    expect(within(nurseryObject).getByRole('button', { name: 'Bring Bouncy Ball forward' })).toBeTruthy()
+    fireEvent.click(document.querySelector('.page-heading')!)
+    expect(within(nurseryObject).queryByRole('button', { name: 'Bring Bouncy Ball forward' })).toBeNull()
+    expect(screen.getByLabelText('Star Glasses worn by Clover')).toBeTruthy()
   })
 
   it('anchors wearables on the right body area for each creature species', async () => {
@@ -257,6 +290,7 @@ describe('Questboard frontend', () => {
     })
     await user.click(screen.getByRole('button', { name: /Place/ }))
     const nurseryObject = await screen.findByRole('group', { name: 'Bouncy Ball in the nursery' })
+    await user.click(screen.getByRole('button', { name: 'Decorate' }))
     fireEvent.pointerDown(nurseryObject, { pointerId: 1, pointerType: 'touch', clientX: 100, clientY: 100 })
     fireEvent.pointerDown(nurseryObject, { pointerId: 2, pointerType: 'touch', clientX: 200, clientY: 100 })
     fireEvent.pointerMove(nurseryObject, { pointerId: 2, pointerType: 'touch', clientX: 250, clientY: 100 })
@@ -281,12 +315,27 @@ describe('Questboard frontend', () => {
     expect(screen.getByRole('button', { name: /A little magic/ }).hasAttribute('disabled')).toBe(true)
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText('Lucky Star')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Make Clover happy' }).classList.contains('creature-celebrating')).toBe(true)
     expect(screen.getByText(/chests waiting for you/).textContent).toContain('0 chests waiting for you')
     expect(fetchMock).toHaveBeenCalledWith('api/profiles/one%20%2F%20%3F/simulate-reward', { method: 'POST', headers: {} })
     expect(fetchMock).toHaveBeenCalledWith('api/profiles/one%20%2F%20%3F/open-chest', { method: 'POST', headers: {} })
     await user.click(within(dialog).getByRole('button', { name: /Lovely/ }))
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(screen.getByText('Lucky Star')).toBeTruthy()
+  })
+
+  it('ignores repeated chest taps while a reward is opening', async () => {
+    const { fetchMock } = createApi()
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByText('Clover’s little corner')
+    await user.click(screen.getByRole('button', { name: /Earn a chest/ }))
+    await waitFor(() => expect(screen.getByText(/chest waiting for you/).textContent).toContain('1 chest waiting for you'))
+    const openButton = screen.getByRole('button', { name: /Open a chest/ })
+    fireEvent.click(openButton)
+    fireEvent.click(openButton)
+    await screen.findByRole('dialog')
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/open-chest'))).toHaveLength(1)
   })
 
   it('shows API errors and retries loading profiles', async () => {
