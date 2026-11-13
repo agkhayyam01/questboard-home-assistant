@@ -9,3 +9,33 @@
 .nursery-mode{display:flex;gap:4px;width:max-content;margin-top:12px;padding:4px;border:1px solid #eee3d9;border-radius:10px;background:#fbf6f1}.nursery-mode button{border:0;border-radius:7px;padding:8px 14px;background:transparent;color:#9e8981;font-size:11px;font-weight:800}.nursery-mode button[aria-pressed=true]{background:#d59c92;color:#fff;box-shadow:0 2px 5px #ad777033}.nursery-object.selected .nursery-object-controls{opacity:1;pointer-events:auto}.room-creature{top:auto;bottom:auto;left:50%;z-index:2;padding:0;border:0;background:transparent;font:inherit;pointer-events:auto;cursor:pointer;transition:left .85s ease,top .85s ease}.room-creature:focus-visible{outline:2px solid #bb8077;outline-offset:4px;border-radius:45%}.creature-body{position:relative;display:block;width:100%}.creature-idle .creature-body{animation:creature-breathe 3s ease-in-out infinite}.creature-walking .creature-body{animation:creature-hop .24s ease-in-out infinite alternate}.creature-happy .creature-body{animation:creature-hop .3s ease-in-out 3}.creature-sitting .creature-body{animation:creature-sit .5s ease-out both}.creature-waving .creature-body{animation:creature-wave .55s ease-in-out 3}.creature-celebrating .creature-body{animation:creature-celebrate .48s ease-in-out 4}@keyframes creature-breathe{50%{transform:translateY(-3px) scale(1.015)}}@keyframes creature-hop{to{transform:translateY(-9px) rotate(2deg)}}@keyframes creature-sit{to{transform:translateY(8px) scaleY(.9)}}@keyframes creature-wave{25%{transform:rotate(-7deg) translateY(-4px)}75%{transform:rotate(7deg)}}@keyframes creature-celebrate{50%{transform:translateY(-15px) rotate(8deg) scale(1.04)}}
 
 .build-id{display:block;margin-top:6px;font-size:11px;opacity:.6}
+.room-creature{transform:translate(-50%,-100%)}
+.room-creature.creature-facing-left{transform:translate(-50%,-100%) scaleX(-1)}
+.room-floor{z-index:0}
+.nursery-object.object-interacting-toy .nursery-object-art{animation:toy-play .42s ease-in-out 4}
+.nursery-object.object-interacting-furniture .nursery-object-art{animation:furniture-settle .75s ease-in-out 2}
+.nursery-object.object-interacting-decoration .nursery-object-art{animation:decoration-notice .65s ease-in-out 2}
+.feed-button{display:flex;align-items:center;gap:8px;margin-top:10px;padding:9px 13px;border:1px solid #edddd3;border-radius:10px;background:#fff8f1;color:#a86f68;font-size:12px;font-weight:800}
+.feed-button span{display:grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:12px;background:#f3e5db;color:#8f7267}
+.nursery-footer .sparkle-circle .decor-icon{color:#d79591}
+.feeding-treat{position:absolute;z-index:5;font-size:27px;pointer-events:none;filter:drop-shadow(0 3px 2px #8f6e5c55);animation:treat-to-mouth 1.65s cubic-bezier(.3,.1,.3,1) both}
+.treats-modal{max-width:550px;max-height:min(86vh,760px);overflow-y:auto}
+.treats-modal>p{margin:8px 0 16px}
+.daily-treats{display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px 12px;padding:14px;border:1px solid #f0dfd4;border-radius:13px;background:#fff7f0}
+.daily-treats>span{font-size:12px;font-weight:800;color:#795f5b}
+.daily-treats .item-action{margin:0}
+.daily-treats small{grid-column:1/-1;color:#aa9389;font-size:10px}
+.treat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+.treat-card{display:grid;justify-items:center;gap:6px;min-width:0;padding:13px 8px;border:1px solid #f0e9e1;border-radius:12px;background:#fff;text-align:center}
+.treat-card strong{color:#665457;font-size:12px}
+.treat-card small{color:#a99790;font-size:10px}
+.treat-emoji{font-size:34px}
+.treat-card .item-action{margin-top:3px}
+.affection-readout{margin:12px 0 0!important;text-align:center;font-size:10px}
+.treats-modal .earn-button{display:block;margin:12px auto 0}
+@keyframes toy-play{25%{transform:translateY(-13px) rotate(12deg)}55%{transform:translateX(10px) rotate(-8deg)}}
+@keyframes furniture-settle{45%{transform:translateY(-5px) scale(1.05)}to{transform:translateY(2px)}}
+@keyframes decoration-notice{50%{transform:rotate(8deg) scale(1.08)}}
+@keyframes treat-to-mouth{0%{opacity:0;transform:translate(34px,40px) scale(1.1)}15%{opacity:1}78%{opacity:1;transform:translate(3px,4px) scale(.8)}100%{opacity:0;transform:translate(0,0) scale(.15)}}
+@media(max-width:520px){.treat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.daily-treats{grid-template-columns:1fr}.daily-treats small{grid-column:1}.treats-modal{padding:25px 19px}.feed-button{font-size:11px}}
+@media(prefers-reduced-motion:reduce){.nursery-object.object-interacting .nursery-object-art,.feeding-treat{animation:none!important}}

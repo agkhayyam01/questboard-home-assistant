@@ -1,7 +1,11 @@
 name: Questboard Creature Companions
-version: "0.2.0"
+version: "0.3.0"
 slug: questboard
 description: A cozy creature companion game with simulated rewards.
+options:
+  household_timezone: UTC
+schema:
+  household_timezone: str
 arch:
   - aarch64
   - amd64

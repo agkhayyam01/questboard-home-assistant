@@ -31,3 +31,18 @@ ITEMS = [
     ("little-chair", "Little Chair", "furniture", "common", "🪑"),
     ("cloud-beanbag", "Cloud Beanbag", "furniture", "rare", "🛋️"),
 ]
+
+TREATS = [
+    ("carrot", "Carrot", "common", "🥕"),
+    ("strawberry", "Strawberry", "common", "🍓"),
+    ("mixed-berries", "Mixed Berries", "common", "🫐"),
+    ("cookie", "Cookie", "common", "🍪"),
+    ("cupcake", "Cupcake", "uncommon", "🧁"),
+    ("moonberry", "Moonberry", "rare", "🌙"),
+]
+
+FAVORITE_TREATS = {
+    "elephant": "strawberry",
+    "bunny": "carrot",
+    "hippo": "mixed-berries",
+}

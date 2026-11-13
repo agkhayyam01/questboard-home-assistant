@@ -55,6 +55,11 @@ class LayoutUpdate(UpdateModel):
     layer: Annotated[int, Field(strict=True, ge=1, le=1000)]
 
 
+class FeedTreat(UpdateModel):
+    treat_id: Annotated[str, Field(min_length=1, max_length=80)]
+    request_id: Annotated[str, Field(min_length=1, max_length=200)]
+
+
 @app.get("/api/profiles")
 def profiles(request: Request):
     return request.app.state.store.profiles()
@@ -100,6 +105,30 @@ def update_layout(profile_id: str, item_id: str, update: LayoutUpdate, request: 
 @app.delete("/api/profiles/{profile_id}/items/{item_id}/layout")
 def reset_layout(profile_id: str, item_id: str, request: Request):
     return request.app.state.store.reset_layout(profile_id, item_id)
+
+
+@app.get("/api/profiles/{profile_id}/treats")
+def treats(profile_id: str, request: Request):
+    return request.app.state.store.treat_details(profile_id)
+
+
+@app.post("/api/profiles/{profile_id}/treats/claim")
+def claim_daily_treats(profile_id: str, request: Request):
+    return request.app.state.store.claim_daily_treats(profile_id)
+
+
+@app.post("/api/profiles/{profile_id}/treats/simulate-reward")
+def simulate_treat_reward(
+    profile_id: str,
+    request: Request,
+    idempotency_key: Annotated[str | None, Header(min_length=1, max_length=200)] = None,
+):
+    return request.app.state.store.grant_special_treat(profile_id, idempotency_key or str(uuid4()))
+
+
+@app.post("/api/profiles/{profile_id}/treats/feed")
+def feed_treat(profile_id: str, update: FeedTreat, request: Request):
+    return request.app.state.store.feed_treat(profile_id, update.treat_id, update.request_id)
 
 
 NO_CACHE = {"Cache-Control": "no-cache, must-revalidate"}

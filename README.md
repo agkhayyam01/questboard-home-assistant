@@ -1,27 +1,46 @@
 # Questboard: Creature Companions
 
 A cozy, mobile-first creature companion game for Remy, Gigi, and Lill. Collect
-treasures, dress your creature, and decorate its nursery. Each profile has its
-own saved creature, chests, and collection.
+treasures, dress your creature, decorate its nursery, and share treats. Each
+profile has its own saved creature, affection, treat inventory, chests, and
+collection.
 
 ![Questboard on a phone](screenshots/mobile.png)
+
+Lill's mobile nursery before and after the 0.3 hippo redesign:
+[before (0.2.0)](screenshots/lill-before.png) ·
+[after (0.3.0)](screenshots/lill-after.png).
 
 ## Play
 
 Choose a profile, name and customize its creature, then use the simulated reward
 button to earn a chest. Open it for a collectible and use your collection to
 equip clothes and accessories or place toys, furniture, and decorations. In
-Play mode, creatures wander occasionally; tap the floor to guide them and tap
-your creature for a happy reaction. Switch to Decorate mode to pause wandering
-and edit the nursery. Select an object to show its resize, layering, and reset
-controls; drag or pinch objects to arrange them. Layouts are saved separately
-for each friend. Rewards are selected from items the player does not already
-own; when the collection is complete, no chest is consumed attempting to open it.
+Play mode, creatures wander around the floor; tap the floor to guide them, or
+tap a toy or furniture item to play or rest. Decorate mode pauses wandering and
+lets children select, drag, pinch, and arrange objects.
 
-This first version uses **simulated rewards only**. It does not read or modify
+Open **Treats / Feed** to claim three free treats per profile each local day and
+feed the creature. Daily treats match each species' favorite. Treat quantities
+and affection are saved independently for each profile; unused treats remain
+available, and missed days do not cause penalties. A rare moonberry can be
+added through the pretend milestone control. Set `household_timezone` in the
+Questboard app configuration to an IANA timezone such as `America/Los_Angeles`
+to choose the daily reset boundary. The default is `UTC`.
+
+Rewards are selected from items the player does not already own; when the
+collection is complete, no chest is consumed attempting to open it.
+
+Questboard uses **simulated rewards only**. It does not read or modify
 Home Assistant entities, chores, automations, or reminders. Medication tasks
 must never be used for rewards. The backend has a boundary for a future,
 read-only reward source; live synchronization is not enabled.
+
+GitHub Actions runs tests and builds on pull requests. Repository administrators
+can enable **Settings → General → Pull Requests → Allow auto-merge** and configure
+required checks in branch protection to allow successful pull requests to merge
+automatically. The repository's current CI workflow only has read permissions;
+no workflow bypasses review rules or failed checks.
 
 ## Install on Home Assistant Green
 
