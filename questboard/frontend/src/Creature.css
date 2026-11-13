@@ -1,0 +1,28 @@
+.room-creature{width:136px;transition:none;transform:translateX(-50%);--travel-duration:900ms}
+.room-creature.creature-facing-left{transform:translateX(-50%) scaleX(-1)}
+.room-creature.creature-walking,.room-creature.creature-running,.room-creature.creature-hopping{animation:creature-travel var(--travel-duration) cubic-bezier(.35,.05,.25,1) both}
+.room-creature.creature-walking .creature-body,.room-creature.creature-running .creature-body,.room-creature.creature-hopping .creature-body{animation:creature-bob .36s ease-in-out infinite alternate}
+.room-creature.creature-walking .creature-foot-left{animation:creature-step .24s ease-in-out infinite alternate}
+.room-creature.creature-walking .creature-foot-right{animation:creature-step .24s ease-in-out infinite alternate-reverse}
+.room-creature.creature-running .creature-foot-left{animation:creature-step .16s ease-in-out infinite alternate}
+.room-creature.creature-running .creature-foot-right{animation:creature-step .16s ease-in-out infinite alternate-reverse}
+.room-creature.creature-hopping .creature-foot{animation:creature-tuck .46s ease-in-out infinite alternate}
+.room-creature.creature-idle .creature-body{animation:creature-breathe 3s ease-in-out infinite}
+.room-creature.creature-happy .creature-body,.room-creature.creature-excited .creature-body,.room-creature.creature-celebrating .creature-body{animation:creature-cheer .42s ease-in-out 3}
+.room-creature.creature-sitting .creature-body{animation:creature-settle .45s ease-out both}
+.room-creature.creature-sleeping .creature-body{animation:creature-snooze 2.8s ease-in-out infinite}
+.room-creature.creature-curious .creature-body{animation:creature-curious .5s ease-in-out 2}
+.room-creature.creature-wake .creature-body,.room-creature.creature-waving .creature-body{animation:creature-wake .42s ease-in-out 3}
+.creature-foot{transform-box:fill-box;transform-origin:center top}
+@keyframes creature-travel{from{left:var(--travel-from-x);top:var(--travel-from-y)}to{left:var(--travel-to-x);top:var(--travel-to-y)}}
+@keyframes creature-bob{to{transform:translateY(-5px)}}
+@keyframes creature-step{to{transform:rotate(22deg) translateY(-4px)}}
+@keyframes creature-tuck{to{transform:translateY(-8px)}}
+@keyframes creature-breathe{50%{transform:translateY(-2px)}}
+@keyframes creature-cheer{50%{transform:translateY(-12px) rotate(3deg)}}
+@keyframes creature-settle{to{transform:translateY(8px) scaleY(.88)}}
+@keyframes creature-snooze{50%{transform:translateY(2px) scale(.99)}}
+@keyframes creature-curious{50%{transform:translate(4px,-3px) rotate(5deg)}}
+@keyframes creature-wake{25%{transform:translateY(-5px) rotate(-5deg)}75%{transform:rotate(5deg)}}
+@media(max-width:520px){.room-creature{width:122px}}
+@media(prefers-reduced-motion:reduce){.room-creature,.room-creature *{animation:none!important;transition:none!important}}

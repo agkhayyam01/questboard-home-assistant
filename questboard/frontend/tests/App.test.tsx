@@ -178,7 +178,9 @@ describe('Questboard frontend', () => {
     expect(nurseryObject.getAttribute('style')).toContain('width: 40px')
     expect(within(nurseryObject).getByRole('button', { name: 'Send Bouncy Ball backward' }).title).toBe('Move behind other decorations')
 
-    await user.click(within(nurseryObject).getByRole('button', { name: 'Make Bouncy Ball larger' }))
+    const enlarge = within(nurseryObject).getByRole('button', { name: 'Make Bouncy Ball larger' })
+    enlarge.focus()
+    await user.keyboard('{Enter}')
     await waitFor(() => expect(nurseryObject.getAttribute('style')).toContain('width: 48px'))
     expect(fetchMock).toHaveBeenCalledWith('api/profiles/one%20%2F%20%3F/items/ball/layout', {
       method: 'PUT',
@@ -214,6 +216,12 @@ describe('Questboard frontend', () => {
     expect(creature.classList.contains('creature-happy')).toBe(true)
     fireEvent.click(room.querySelector('.room-floor')!, { clientX: 280, clientY: 250 })
     expect(creature.getAttribute('style')).toContain('left: 70%')
+    vi.spyOn(creature, 'getBoundingClientRect').mockReturnValue({
+      x: 180, y: 60, left: 180, top: 60, right: 280, bottom: 160, width: 100, height: 100,
+      toJSON: () => ({}),
+    })
+    fireEvent.click(creature)
+    expect(creature.getAttribute('style')).toContain('left: 57.5%')
 
     await user.click(within(screen.getByText('Star Glasses').closest('article')!).getByRole('button', { name: /Equip/ }))
     expect(screen.getByLabelText('Star Glasses worn by Clover')).toBeTruthy()
@@ -227,6 +235,26 @@ describe('Questboard frontend', () => {
     fireEvent.click(document.querySelector('.page-heading')!)
     expect(within(nurseryObject).queryByRole('button', { name: 'Bring Bouncy Ball forward' })).toBeNull()
     expect(screen.getByLabelText('Star Glasses worn by Clover')).toBeTruthy()
+  })
+
+  it('animates expressive poses and lets keyboard users invite a creature to play with a toy', async () => {
+    createApi()
+    render(<App />)
+    await screen.findByText('Clover’s little corner')
+
+    const creature = screen.getByRole('button', { name: 'Make Clover happy' })
+    fireEvent.click(creature)
+    const artwork = document.querySelector('.room-creature .creature')!
+    expect(artwork.getAttribute('data-action')).toBe('happy')
+    expect(artwork.querySelectorAll('.creature-foot')).toHaveLength(2)
+
+    await userEvent.click(screen.getByRole('button', { name: /Place/ }))
+    const toy = await screen.findByRole('group', { name: 'Bouncy Ball in the nursery' })
+    toy.focus()
+    fireEvent.keyDown(toy, { key: 'Enter' })
+    expect(creature.classList.contains('creature-hopping')).toBe(true)
+    expect(creature.getAttribute('style')).toContain('left: 63%')
+    expect(artwork.getAttribute('data-action')).toBe('hopping')
   })
 
   it('anchors wearables on the right body area for each creature species', async () => {
