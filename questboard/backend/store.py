@@ -127,7 +127,7 @@ class Store:
                 zone_name = None
         try:
             return ZoneInfo(zone_name or "UTC")
-        except (ZoneInfoNotFoundError, TypeError):
+        except (ZoneInfoNotFoundError, TypeError, ValueError):
             return ZoneInfo("UTC")
 
     @classmethod
@@ -159,10 +159,16 @@ class Store:
                 "SELECT affection FROM companion_state WHERE profile_id = ?",
                 (profile_id,),
             ).fetchone()
+            special_reward = db.execute(
+                """SELECT 1 FROM treat_reward_events
+                   WHERE profile_id = ? AND source = 'simulated' AND event_id = 'demo-moonberry'""",
+                (profile_id,),
+            ).fetchone()
             return {
                 "treats": self.treat_list(db, profile_id),
                 "affection": state["affection"],
                 "favorite_treat": FAVORITE_TREATS.get(profile["species"].lower()),
+                "special_milestone_claimed": special_reward is not None,
                 "daily": {
                     "claimed": claim is not None,
                     "quantity": claim["quantity"] if claim else 3,
@@ -177,19 +183,20 @@ class Store:
         now = self.household_now()
         today = now.date().isoformat()
         with self.connect(write=True) as db:
-            self.profile(db, profile_id)
+            profile = self.profile(db, profile_id)
             claimed = db.execute(
                 """INSERT OR IGNORE INTO daily_treat_claims (profile_id, claim_date, quantity)
                    VALUES (?, ?, 3)""",
                 (profile_id, today),
             ).rowcount == 1
             if claimed:
+                treat_id = FAVORITE_TREATS.get(profile["species"].lower(), "strawberry")
                 db.execute(
                     """INSERT INTO treat_inventory (profile_id, treat_id, quantity)
-                       VALUES (?, 'strawberry', 3)
+                       VALUES (?, ?, 3)
                        ON CONFLICT(profile_id, treat_id)
                        DO UPDATE SET quantity = quantity + 3""",
-                    (profile_id,),
+                    (profile_id, treat_id),
                 )
         return {"claimed": claimed, **self.treat_details(profile_id)}
 

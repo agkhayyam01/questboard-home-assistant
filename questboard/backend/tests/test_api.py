@@ -1,4 +1,8 @@
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
+import sqlite3
+from zoneinfo import ZoneInfo
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -203,6 +207,64 @@ def test_daily_treat_claim_is_profile_scoped_timezone_aware_and_persistent(clien
     assert client.get("/api/profiles/remy/treats").json()["daily"]["claimed"] is True
 
 
+def test_daily_allowance_resets_on_configured_local_calendar_date(client, monkeypatch):
+    local_now = [
+        datetime(2026, 1, 1, 7, 59, tzinfo=timezone.utc).astimezone(ZoneInfo("America/Los_Angeles"))
+    ]
+    monkeypatch.setattr(Store, "household_now", lambda self: local_now[0])
+    url = "/api/profiles/remy/treats"
+    first = client.post(url + "/claim").json()
+    assert first["claimed"] is True
+    assert first["daily"]["next_available_at"] == "2026-01-01T00:00:00-08:00"
+    assert client.post(url + "/claim").json()["claimed"] is False
+
+    local_now[0] = datetime(2026, 1, 1, 8, 0, tzinfo=timezone.utc).astimezone(ZoneInfo("America/Los_Angeles"))
+    assert client.get(url).json()["daily"]["claimed"] is False
+    assert client.post(url + "/claim").json()["claimed"] is True
+    assert client.get(url).json()["treats"][1]["quantity"] == 6
+
+
+def test_initialize_adds_treat_tables_without_changing_existing_saved_data(tmp_path):
+    store = Store(tmp_path)
+    with sqlite3.connect(store.path) as db:
+        db.executescript(
+            """CREATE TABLE profiles (
+                   id TEXT PRIMARY KEY, owner TEXT NOT NULL, species TEXT NOT NULL,
+                   name TEXT NOT NULL, color TEXT NOT NULL, chests INTEGER NOT NULL DEFAULT 0);
+               CREATE TABLE items (
+                   id TEXT PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL,
+                   rarity TEXT NOT NULL, emoji TEXT NOT NULL);
+               CREATE TABLE inventory (
+                   profile_id TEXT NOT NULL, item_id TEXT NOT NULL,
+                   equipped INTEGER NOT NULL DEFAULT 0, placed INTEGER NOT NULL DEFAULT 0,
+                   PRIMARY KEY (profile_id, item_id));
+               CREATE TABLE nursery_layout (
+                   profile_id TEXT NOT NULL, item_id TEXT NOT NULL, x REAL NOT NULL,
+                   y REAL NOT NULL, size INTEGER NOT NULL, layer INTEGER NOT NULL,
+                   PRIMARY KEY (profile_id, item_id));
+               CREATE TABLE reward_events (
+                   source TEXT NOT NULL, event_id TEXT NOT NULL, profile_id TEXT NOT NULL,
+                   PRIMARY KEY (source, event_id));
+               INSERT INTO profiles VALUES ('remy', 'Remy', 'elephant', 'Peanut', '#abcdef', 2);
+               INSERT INTO items VALUES ('bow', 'Ribbon Bow', 'accessory', 'common', '🎀');
+               INSERT INTO inventory VALUES ('remy', 'bow', 1, 0);
+               INSERT INTO nursery_layout VALUES ('remy', 'bow', 42, 63, 72, 10);"""
+        )
+
+    store.initialize()
+    details = store.details("remy")
+    assert details["profile"] == {
+        "id": "remy", "owner": "Remy", "species": "elephant",
+        "name": "Peanut", "color": "#abcdef", "chests": 2,
+    }
+    assert next(item for item in details["items"] if item["id"] == "bow") == {
+        "id": "bow", "name": "Ribbon Bow", "category": "accessory",
+        "rarity": "common", "emoji": "🎀", "owned": True, "equipped": True,
+        "placed": False, "layout": {"x": 42.0, "y": 63.0, "size": 72, "layer": 10},
+    }
+    assert store.treat_details("remy")["affection"] == 0
+
+
 def test_feeding_is_exactly_once_and_updates_favorite_affection(client):
     store = app.state.store
     with store.connect(write=True) as db:
@@ -227,7 +289,8 @@ def test_feeding_is_exactly_once_and_updates_favorite_affection(client):
 
 def test_special_treat_reward_is_idempotent_and_independent(client):
     url = "/api/profiles/remy/treats/simulate-reward"
-    headers = {"Idempotency-Key": "milestone-1"}
+    headers = {"Idempotency-Key": "demo-moonberry"}
+    assert client.get("/api/profiles/remy/treats").json()["special_milestone_claimed"] is False
     first = client.post(url, headers=headers)
     assert first.status_code == 200
     assert first.json()["granted"] is True
@@ -236,6 +299,7 @@ def test_special_treat_reward_is_idempotent_and_independent(client):
     assert repeat.status_code == 200
     assert repeat.json()["granted"] is False
     assert next(t for t in repeat.json()["treats"] if t["id"] == "moonberry")["quantity"] == 1
+    assert client.get("/api/profiles/remy/treats").json()["special_milestone_claimed"] is True
     assert client.post("/api/profiles/gigi/treats/simulate-reward", headers=headers).status_code == 409
 
 

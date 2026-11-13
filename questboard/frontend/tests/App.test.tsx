@@ -23,6 +23,7 @@ const initialDetails: Details[] = [
       { id: 'kite', name: 'Blue Kite', category: 'toy', rarity: 'Common', emoji: '🪁', owned: true, equipped: false, placed: false },
       { id: 'sun-hat', name: 'Sun Hat', category: 'accessory', rarity: 'Common', emoji: '👒', owned: true, equipped: false, placed: false },
       { id: 'raincoat', name: 'Raincoat', category: 'outfit', rarity: 'Common', emoji: '🧥', owned: true, equipped: false, placed: false },
+      { id: 'cozy-bed', name: 'Cozy Bed', category: 'furniture', rarity: 'Common', emoji: '🛏️', owned: true, equipped: false, placed: true },
     ],
   },
   {
@@ -40,6 +41,21 @@ const initialDetails: Details[] = [
 
 function createApi() {
   const data = structuredClone(initialDetails)
+  const treats = Object.fromEntries(data.map(({ profile }) => [profile.id, {
+    treats: [
+      { id: 'carrot', name: 'Carrot', rarity: 'common', emoji: '🥕', quantity: 0 },
+      { id: 'strawberry', name: 'Strawberry', rarity: 'common', emoji: '🍓', quantity: 0 },
+      { id: 'mixed-berries', name: 'Mixed Berries', rarity: 'common', emoji: '🫐', quantity: 0 },
+      { id: 'cookie', name: 'Cookie', rarity: 'common', emoji: '🍪', quantity: 0 },
+      { id: 'cupcake', name: 'Cupcake', rarity: 'uncommon', emoji: '🧁', quantity: 0 },
+      { id: 'moonberry', name: 'Moonberry', rarity: 'rare', emoji: '🌙', quantity: 0 },
+    ],
+    affection: 0,
+    favorite_treat: profile.species === 'bunny' ? 'carrot' : profile.species === 'hippo' ? 'mixed-berries' : 'strawberry',
+    special_milestone_claimed: false,
+    daily: { claimed: false, quantity: 3, next_available_at: '2025-01-02T00:00:00+00:00', timezone: 'UTC' },
+  }]))
+  const treatRewards = new Set<string>()
   const failNext = new Map<string, { status: number; body: unknown }>()
   const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const path = String(input)
@@ -55,6 +71,33 @@ function createApi() {
     const details = data.find(d => d.profile.id === decodeURIComponent(parts[2] ?? ''))
     if (parts[0] !== 'api' || parts[1] !== 'profiles' || !details) {
       return Response.json({ error: `Unexpected request: ${key}` }, { status: 404 })
+    }
+    const treatsForProfile = treats[details.profile.id]
+    if (parts[3] === 'treats' && parts.length === 4 && method === 'GET') return Response.json(treatsForProfile)
+    if (parts[3] === 'treats' && parts[4] === 'claim' && method === 'POST') {
+      const claimed = !treatsForProfile.daily.claimed
+      if (claimed) {
+        treatsForProfile.daily.claimed = true
+        treatsForProfile.treats.find(treat => treat.id === treatsForProfile.favorite_treat)!.quantity += 3
+      }
+      return Response.json({ claimed, ...treatsForProfile })
+    }
+    if (parts[3] === 'treats' && parts[4] === 'simulate-reward' && method === 'POST') {
+      const idempotencyKey = new Headers(init?.headers).get('Idempotency-Key') ?? ''
+      if (!treatRewards.has(`${details.profile.id}:${idempotencyKey}`)) {
+        treatRewards.add(`${details.profile.id}:${idempotencyKey}`)
+        treatsForProfile.treats.find(treat => treat.id === 'moonberry')!.quantity++
+        treatsForProfile.special_milestone_claimed = true
+      }
+      return Response.json(treatsForProfile)
+    }
+    if (parts[3] === 'treats' && parts[4] === 'feed' && method === 'POST') {
+      const body = JSON.parse(String(init?.body)) as { treat_id: string; request_id: string }
+      const treat = treatsForProfile.treats.find(item => item.id === body.treat_id)!
+      const favorite = treatsForProfile.favorite_treat === treat.id
+      treat.quantity--
+      treatsForProfile.affection = Math.min(100, treatsForProfile.affection + (favorite ? 8 : 5))
+      return Response.json({ fed: true, favorite, affection: treatsForProfile.affection, quantity: treat.quantity })
     }
     if (parts.length === 3 && method === 'GET') return Response.json(details)
     if (parts.length === 3 && method === 'PATCH') {
@@ -212,16 +255,26 @@ describe('Questboard frontend', () => {
       toJSON: () => ({}),
     })
     const creature = screen.getByRole('button', { name: 'Make Clover happy' })
+    expect(creature.getAttribute('style')).toContain('top: 82%')
     fireEvent.click(creature)
     expect(creature.classList.contains('creature-happy')).toBe(true)
     fireEvent.click(room.querySelector('.room-floor')!, { clientX: 280, clientY: 250 })
     expect(creature.getAttribute('style')).toContain('left: 70%')
+    expect(creature.getAttribute('style')).toContain('top: 83.3333%')
     vi.spyOn(creature, 'getBoundingClientRect').mockReturnValue({
       x: 180, y: 60, left: 180, top: 60, right: 280, bottom: 160, width: 100, height: 100,
       toJSON: () => ({}),
     })
     fireEvent.click(creature)
     expect(creature.getAttribute('style')).toContain('left: 57.5%')
+    expect(creature.getAttribute('style')).toContain('top: 74%')
+    vi.spyOn(room, 'getBoundingClientRect').mockReturnValue({
+      x: 0, y: 0, left: 0, top: 0, right: 200, bottom: 300, width: 200, height: 300,
+      toJSON: () => ({}),
+    })
+    fireEvent(window, new Event('resize'))
+    fireEvent.click(room.querySelector('.room-floor')!, { clientX: 0, clientY: 250 })
+    expect(creature.getAttribute('style')).toContain('left: 25%')
 
     await user.click(within(screen.getByText('Star Glasses').closest('article')!).getByRole('button', { name: /Equip/ }))
     expect(screen.getByLabelText('Star Glasses worn by Clover')).toBeTruthy()
@@ -255,6 +308,23 @@ describe('Questboard frontend', () => {
     expect(creature.classList.contains('creature-hopping')).toBe(true)
     expect(creature.getAttribute('style')).toContain('left: 63%')
     expect(artwork.getAttribute('data-action')).toBe('hopping')
+    await waitFor(() => expect(toy.classList.contains('object-interacting-toy')).toBe(true), { timeout: 2000 })
+  })
+
+  it('lets a child tap furniture to approach and settle onto it', async () => {
+    createApi()
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByText('Clover’s little corner')
+    await user.click(screen.getByRole('button', { name: /Blair/ }))
+    await screen.findByText('Pebble’s little corner')
+
+    const bed = screen.getByRole('group', { name: 'Cozy Bed in the nursery' })
+    fireEvent.click(bed)
+    const creature = document.querySelector('.room-creature')
+    await waitFor(() => expect(creature?.classList.contains('creature-walking')).toBe(true))
+    await waitFor(() => expect(document.querySelector('.room-creature .creature')?.getAttribute('data-action')).toBe('sleeping'), { timeout: 2000 })
+    await waitFor(() => expect(bed.classList.contains('object-interacting-furniture')).toBe(true), { timeout: 2000 })
   })
 
   it('anchors wearables on the right body area for each creature species', async () => {
@@ -350,6 +420,65 @@ describe('Questboard frontend', () => {
     await user.click(within(dialog).getByRole('button', { name: /Lovely/ }))
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(screen.getByText('Lucky Star')).toBeTruthy()
+  })
+
+  it('claims daily treats and shows the distinct eating animation when feeding a favorite', async () => {
+    const { fetchMock, failNext } = createApi()
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByText('Clover’s little corner')
+    const openTreats = await screen.findByRole('button', { name: /Treats and feed/ })
+    await waitFor(() => expect((openTreats as HTMLButtonElement).disabled).toBe(false))
+    await user.click(openTreats)
+
+    const dialog = screen.getByRole('dialog', { name: /Treats for Clover/ })
+    await user.click(within(dialog).getByRole('button', { name: 'Claim 3 free treats' }))
+    expect(await within(dialog).findByText(/3\s+available/)).toBeTruthy()
+    const carrot = within(dialog).getByText('Carrot').closest('article')!
+    failNext.set('POST api/profiles/one%20%2F%20%3F/treats/feed', { status: 503, body: { detail: 'Connection interrupted' } })
+    await user.click(within(carrot).getByRole('button', { name: 'Feed Clover' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('Connection interrupted')
+    const feedRequests = () => fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/treats/feed'))
+    const interruptedRequestId = JSON.parse(String(feedRequests()[0][1]?.body)).request_id
+    await user.click(within(carrot).getByRole('button', { name: 'Feed Clover' }))
+
+    await waitFor(() => {
+      expect(feedRequests()).toHaveLength(2)
+      expect(JSON.parse(String(feedRequests()[1][1]?.body)).request_id).toBe(interruptedRequestId)
+      expect(JSON.parse(String(feedRequests()[1][1]?.body)).treat_id).toBe('carrot')
+    })
+    await waitFor(() => expect(document.querySelector('.room-creature .creature')?.getAttribute('data-action')).toBe('eating'), { timeout: 4000 })
+    expect(document.querySelectorAll('.room-creature .creature-foot')).toHaveLength(2)
+    expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/treats/claim'))).toBe(true)
+    expect(screen.getByText('Affection 8%')).toBeTruthy()
+  })
+
+  it('awards the pretend milestone treat only once per profile', async () => {
+    const { fetchMock } = createApi()
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByText('Clover’s little corner')
+    await waitFor(() => expect((screen.getByRole('button', { name: /Treats and feed/ }) as HTMLButtonElement).disabled).toBe(false))
+    await user.click(screen.getByRole('button', { name: /Treats and feed/ }))
+    const dialog = screen.getByRole('dialog', { name: /Treats for Clover/ })
+    await user.click(within(dialog).getByRole('button', { name: /Try a pretend milestone treat/ }))
+    expect(await within(dialog).findByRole('button', { name: /Milestone treat claimed/ })).toBeTruthy()
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/treats/simulate-reward'))).toHaveLength(1)
+  })
+
+  it('renders Lill with a broad hippo muzzle and anchors her feet on the nursery floor', async () => {
+    createApi()
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByText('Clover’s little corner')
+    await user.click(screen.getByRole('button', { name: /Lill/ }))
+    await screen.findByText('Lill’s little corner')
+
+    const creature = screen.getByRole('button', { name: 'Make Lill happy' })
+    const artwork = creature.querySelector('.creature-species-hippo')!
+    expect(artwork.querySelector('.creature-muzzle')).toBeTruthy()
+    expect(artwork.querySelectorAll('.creature-nostril')).toHaveLength(2)
+    expect(creature.getAttribute('style')).toContain('top: 82%')
   })
 
   it('ignores repeated chest taps while a reward is opening', async () => {

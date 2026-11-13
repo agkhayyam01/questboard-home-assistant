@@ -1,5 +1,5 @@
-.room-creature{width:136px;transition:none;transform:translateX(-50%);--travel-duration:900ms}
-.room-creature.creature-facing-left{transform:translateX(-50%) scaleX(-1)}
+.room-creature{width:154px;transition:none;transform:translate(-50%,-100%);--travel-duration:900ms}
+.room-creature.creature-facing-left{transform:translate(-50%,-100%) scaleX(-1)}
 .room-creature.creature-walking,.room-creature.creature-running,.room-creature.creature-hopping{animation:creature-travel var(--travel-duration) cubic-bezier(.35,.05,.25,1) both}
 .room-creature.creature-walking .creature-body,.room-creature.creature-running .creature-body,.room-creature.creature-hopping .creature-body{animation:creature-bob .36s ease-in-out infinite alternate}
 .room-creature.creature-walking .creature-foot-left{animation:creature-step .24s ease-in-out infinite alternate}
@@ -13,6 +13,28 @@
 .room-creature.creature-sleeping .creature-body{animation:creature-snooze 2.8s ease-in-out infinite}
 .room-creature.creature-curious .creature-body{animation:creature-curious .5s ease-in-out 2}
 .room-creature.creature-wake .creature-body,.room-creature.creature-waving .creature-body{animation:creature-wake .42s ease-in-out 3}
+.room-creature.creature-sniffing .creature-body{animation:creature-sniff .42s ease-in-out 2}
+.room-creature.creature-eating .creature-body{animation:creature-lean .65s ease-in-out both}
+.room-creature.creature-chewing .creature-body{animation:creature-chew .2s ease-in-out 4}
+.creature-ears{transform-box:fill-box;transform-origin:center}
+.creature-species-bunny[data-action=idle] .creature-ears path:first-child{animation:ear-twitch 4.7s ease-in-out infinite}
+.creature-species-bunny[data-action=idle] .creature-ears path:nth-child(3){animation:ear-twitch 5.3s ease-in-out 1.1s infinite}
+.creature-species-bunny[data-action=excited] .creature-ears{animation:ear-bounce .35s ease-in-out 3}
+.creature-species-elephant .creature-ears{transform-box:fill-box;transform-origin:center;animation:ear-flop 3.8s ease-in-out infinite}
+.creature-species-elephant[data-action=excited] .creature-ears{animation:ear-flop .42s ease-in-out 4}
+.creature-trunk{transform-box:fill-box;transform-origin:20% 5%;animation:trunk-sway 2.8s ease-in-out infinite}
+.creature-eyes{transform-box:fill-box;transform-origin:center;animation:creature-blink 5s ease-in-out 1.2s infinite}
+.creature-species-bunny .creature-eyes{animation-delay:2.6s}
+.creature-species-hippo .creature-eyes{animation-delay:.4s}
+.creature-species-bunny[data-action=idle] .creature-nose{transform-box:fill-box;transform-origin:center;animation:nose-wiggle 1.2s ease-in-out infinite}
+.creature-tail{transform-box:fill-box;transform-origin:0 50%;animation:tail-wiggle 3.4s ease-in-out infinite}
+.creature-species-hippo[data-action=happy] .creature-cheeks,.creature-species-hippo[data-action=celebrating] .creature-cheeks{transform-box:fill-box;transform-origin:center;animation:cheek-puff .4s ease-in-out 3}
+.creature-species-hippo[data-action=idle] .creature-nostril{animation:hippo-breathe 3s ease-in-out infinite}
+.creature-species-hippo[data-action=sniffing] .creature-muzzle{animation:hippo-sniff .32s ease-in-out 3}
+.creature-species-hippo[data-action=excited] .creature-nostril{animation:hippo-flare .35s ease-in-out 3}
+.creature-species-hippo[data-action=eating] .creature-open-mouth,.creature-species-hippo[data-action=chewing] .creature-open-mouth{transform-box:fill-box;transform-origin:center;animation:hippo-munch .24s ease-in-out infinite alternate}
+.creature-yawning .creature-body{animation:creature-stretch .8s ease-in-out both}
+.creature-confused .creature-body{animation:creature-curious .5s ease-in-out 2}
 .creature-foot{transform-box:fill-box;transform-origin:center top}
 @keyframes creature-travel{from{left:var(--travel-from-x);top:var(--travel-from-y)}to{left:var(--travel-to-x);top:var(--travel-to-y)}}
 @keyframes creature-bob{to{transform:translateY(-5px)}}
@@ -24,5 +46,21 @@
 @keyframes creature-snooze{50%{transform:translateY(2px) scale(.99)}}
 @keyframes creature-curious{50%{transform:translate(4px,-3px) rotate(5deg)}}
 @keyframes creature-wake{25%{transform:translateY(-5px) rotate(-5deg)}75%{transform:rotate(5deg)}}
-@media(max-width:520px){.room-creature{width:122px}}
+@media(max-width:520px){.room-creature{width:136px}}
 @media(prefers-reduced-motion:reduce){.room-creature,.room-creature *{animation:none!important;transition:none!important}}
+@keyframes creature-sniff{50%{transform:translateY(2px) scale(1.02)}}
+@keyframes creature-lean{to{transform:translateY(4px) scaleY(.96)}}
+@keyframes creature-chew{50%{transform:translateY(2px) scaleY(.97)}}
+@keyframes ear-twitch{8%,16%{transform:rotate(8deg)}12%,20%{transform:rotate(-5deg)}}
+@keyframes ear-bounce{50%{transform:rotate(-9deg) translateY(-4px)}}
+@keyframes ear-flop{50%{transform:rotate(3deg)}}
+@keyframes trunk-sway{50%{transform:rotate(-8deg)}}
+@keyframes creature-blink{0%,4%,8%,100%{transform:scaleY(1)}5%,7%{transform:scaleY(.08)}}
+@keyframes nose-wiggle{25%{transform:rotate(-6deg)}75%{transform:rotate(6deg)}}
+@keyframes tail-wiggle{50%{transform:rotate(12deg)}}
+@keyframes cheek-puff{50%{transform:scale(1.16)}}
+@keyframes hippo-breathe{50%{transform:scaleY(.75)}}
+@keyframes hippo-sniff{50%{transform:translateY(-2px) scale(1.03)}}
+@keyframes hippo-munch{to{transform:translateY(2px) scaleY(.91)}}
+@keyframes hippo-flare{50%{transform:scale(1.3,1.15)}}
+@keyframes creature-stretch{40%{transform:translateY(-8px) scaleY(1.05)}to{transform:translateY(1px) scaleY(.96)}}
