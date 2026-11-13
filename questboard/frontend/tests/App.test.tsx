@@ -2,9 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../src/App'
+import Creature from '../src/Creature'
 
 type Profile = { id: string; owner: string; species: string; name: string; color: string; chests: number }
-type Item = { id: string; name: string; category: 'outfit' | 'accessory' | 'toy' | 'furniture'; rarity: string; emoji: string; owned: boolean; equipped: boolean; placed: boolean; layout?: { x: number; y: number; size: number; layer: number } | null }
+type Item = { id: string; name: string; category: 'outfit' | 'accessory' | 'toy' | 'furniture' | 'decoration'; rarity: string; emoji: string; owned: boolean; equipped: boolean; placed: boolean; layout?: { x: number; y: number; size: number; layer: number } | null }
 type Details = { profile: Profile; items: Item[] }
 
 const initialDetails: Details[] = [
@@ -14,6 +15,8 @@ const initialDetails: Details[] = [
       { id: 'hat / 1', name: 'Cozy Hat', category: 'outfit', rarity: 'Common', emoji: '🎩', owned: true, equipped: false, placed: false },
       { id: 'glasses', name: 'Star Glasses', category: 'accessory', rarity: 'Uncommon', emoji: '👓', owned: true, equipped: false, placed: false },
       { id: 'ball', name: 'Bouncy Ball', category: 'toy', rarity: 'Rare', emoji: '⚽', owned: true, equipped: false, placed: false },
+      { id: 'painting', name: 'Flower Painting', category: 'decoration', rarity: 'Common', emoji: '🖼️', owned: true, equipped: false, placed: false },
+      { id: 'plush', name: 'Stuffed Bunny', category: 'toy', rarity: 'Common', emoji: '🧸', owned: true, equipped: false, placed: false },
       { id: 'star', name: 'Lucky Star', category: 'toy', rarity: 'Rare', emoji: '⭐', owned: false, equipped: false, placed: false },
     ],
   },
@@ -159,15 +162,17 @@ describe('Questboard frontend', () => {
     expect(await screen.findByText('Clover’s little corner')).toBeTruthy()
     expect(document.body.textContent).not.toMatch(/[✳✺✿✧✦]/u)
     expect(document.querySelectorAll('.room .decor-icon').length).toBeGreaterThan(0)
-    expect(screen.getByText('Cozy Hat')).toBeTruthy()
+    expect(screen.getByText('Star Glasses')).toBeTruthy()
+    expect(screen.queryByText('Cozy Hat')).toBeNull()
     expect(screen.queryByText('Lucky Star')).toBeNull()
-    await user.click(screen.getByRole('button', { name: /Outfits/ }))
+    expect(screen.queryByRole('button', { name: /Outfits/ })).toBeNull()
+    await user.click(screen.getByRole('button', { name: /Accessories/ }))
     expect(screen.queryByText('Bouncy Ball')).toBeNull()
 
     await user.click(screen.getByRole('button', { name: /Blair/ }))
     expect(await screen.findByText('Pebble’s little corner')).toBeTruthy()
     expect(screen.getByText('Blue Kite')).toBeTruthy()
-    expect(screen.queryByText('Cozy Hat')).toBeNull()
+    expect(screen.queryByText('Star Glasses')).toBeNull()
     expect(screen.getByRole('button', { name: /Blair/ }).getAttribute('aria-pressed')).toBe('true')
     expect(screen.getByRole('button', { name: /Everything/ }).getAttribute('aria-pressed')).toBe('true')
     expect(fetchMock).toHaveBeenCalledWith('api/profiles/two', expect.anything())
@@ -196,12 +201,12 @@ describe('Questboard frontend', () => {
       headers: { 'Content-Type': 'application/json' },
     })
 
-    await user.click(within(screen.getByText('Cozy Hat').closest('article')!).getByRole('button', { name: /Equip/ }))
+    await user.click(within(screen.getByText('Star Glasses').closest('article')!).getByRole('button', { name: /Equip/ }))
     expect(await screen.findByText('✓ Wearing')).toBeTruthy()
-    expect(fetchMock).toHaveBeenCalledWith('api/profiles/one%20%2F%20%3F/items/hat%20%2F%201', {
+    expect(fetchMock).toHaveBeenCalledWith('api/profiles/one%20%2F%20%3F/items/glasses', {
       method: 'POST', body: JSON.stringify({ equipped: true }), headers: { 'Content-Type': 'application/json' },
     })
-    await user.click(screen.getByRole('button', { name: /Place/ }))
+    await user.click(within(screen.getByText('Bouncy Ball').closest('article')!).getByRole('button', { name: /Place/ }))
     expect(await screen.findByText('✓ Placed')).toBeTruthy()
     expect(screen.getByTitle('Bouncy Ball')).toBeTruthy()
     expect(fetchMock).toHaveBeenCalledWith('api/profiles/one%20%2F%20%3F/items/ball', {
@@ -214,7 +219,7 @@ describe('Questboard frontend', () => {
     const user = userEvent.setup()
     render(<App />)
     await screen.findByText('Clover’s little corner')
-    await user.click(screen.getByRole('button', { name: /Place/ }))
+    await user.click(within(screen.getByText('Bouncy Ball').closest('article')!).getByRole('button', { name: /Place/ }))
     const nurseryObject = await screen.findByRole('group', { name: 'Bouncy Ball in the nursery' })
     await user.click(screen.getByRole('button', { name: 'Decorate' }))
     fireEvent.pointerDown(nurseryObject, { pointerId: 99, pointerType: 'touch', clientX: 100, clientY: 100 })
@@ -280,7 +285,7 @@ describe('Questboard frontend', () => {
     expect(screen.getByLabelText('Star Glasses worn by Clover')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Decorate' }))
     expect(screen.getByRole('button', { name: 'Decorate' }).getAttribute('aria-pressed')).toBe('true')
-    await user.click(screen.getByRole('button', { name: /Place/ }))
+    await user.click(within(screen.getByText('Bouncy Ball').closest('article')!).getByRole('button', { name: /Place/ }))
     const nurseryObject = await screen.findByRole('group', { name: 'Bouncy Ball in the nursery' })
     expect(within(nurseryObject).queryByRole('button', { name: 'Bring Bouncy Ball forward' })).toBeNull()
     fireEvent.pointerDown(nurseryObject, { pointerId: 99, pointerType: 'touch', clientX: 100, clientY: 100 })
@@ -301,7 +306,7 @@ describe('Questboard frontend', () => {
     expect(artwork.getAttribute('data-action')).toBe('happy')
     expect(artwork.querySelectorAll('.creature-foot')).toHaveLength(2)
 
-    await userEvent.click(screen.getByRole('button', { name: /Place/ }))
+    await userEvent.click(within(screen.getByText('Bouncy Ball').closest('article')!).getByRole('button', { name: /Place/ }))
     const toy = await screen.findByRole('group', { name: 'Bouncy Ball in the nursery' })
     toy.focus()
     fireEvent.keyDown(toy, { key: 'Enter' })
@@ -327,18 +332,45 @@ describe('Questboard frontend', () => {
     await waitFor(() => expect(bed.classList.contains('object-interacting-furniture')).toBe(true), { timeout: 2000 })
   })
 
-  it('anchors wearables on the right body area for each creature species', async () => {
+  it('coordinates painting, rolling-ball, and stuffed-animal interactions', async () => {
+    createApi()
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByText('Clover’s little corner')
+    const creature = document.querySelector('.room-creature .creature')!
+
+    await user.click(within(screen.getByText('Flower Painting').closest('article')!).getByRole('button', { name: /Place/ }))
+    const painting = await screen.findByRole('group', { name: 'Flower Painting in the nursery' })
+    fireEvent.click(painting)
+    await waitFor(() => expect(painting.classList.contains('object-interacting-painting')).toBe(true), { timeout: 2500 })
+    expect(creature.getAttribute('data-action')).toBe('admiring')
+    fireEvent.click(document.querySelector('.room-floor')!, { clientX: 300, clientY: 250 })
+    expect(painting.classList.contains('object-interacting')).toBe(false)
+    expect(creature.getAttribute('data-action')).toBe('walking')
+    expect(creature.querySelectorAll('.creature-foot')).toHaveLength(2)
+
+    await user.click(within(screen.getByText('Bouncy Ball').closest('article')!).getByRole('button', { name: /Place/ }))
+    const ball = await screen.findByRole('group', { name: 'Bouncy Ball in the nursery' })
+    fireEvent.click(ball)
+    await waitFor(() => expect(ball.classList.contains('object-interacting-ball')).toBe(true), { timeout: 2500 })
+    expect(ball.getAttribute('style')).toContain('--roll-distance:')
+    expect(creature.getAttribute('data-action')).toBe('playing')
+
+    await user.click(within(screen.getByText('Stuffed Bunny').closest('article')!).getByRole('button', { name: /Place/ }))
+    const plush = await screen.findByRole('group', { name: 'Stuffed Bunny in the nursery' })
+    fireEvent.click(plush)
+    await waitFor(() => expect(plush.classList.contains('object-interacting-plush')).toBe(true), { timeout: 2500 })
+    expect(creature.getAttribute('data-action')).toBe('hugging')
+  })
+
+  it('anchors supported accessories by species and keeps full-body outfits out of selection', async () => {
     createApi()
     const user = userEvent.setup()
     render(<App />)
     await screen.findByText('Clover’s little corner')
 
-    const outfitCard = screen.getByText('Cozy Hat').closest('article')!
-    await user.click(within(outfitCard).getByRole('button', { name: /Equip/ }))
-    const bunnyOutfit = screen.getByLabelText('Cozy Hat worn by Clover')
-    expect(bunnyOutfit.classList.contains('wearable-outfit')).toBe(true)
-    expect(bunnyOutfit.tagName.toLowerCase()).toBe('svg')
-    expect(bunnyOutfit.getAttribute('viewBox')).toBe('0 0 220 230')
+    expect(screen.queryByText('Cozy Hat')).toBeNull()
+    expect(document.querySelector('[aria-label="Cozy Hat worn by Clover"]')).toBeNull()
     const glassesCard = screen.getByText('Star Glasses').closest('article')!
     await user.click(within(glassesCard).getByRole('button', { name: /Equip/ }))
     const bunnyGlasses = screen.getByLabelText('Star Glasses worn by Clover')
@@ -347,15 +379,15 @@ describe('Questboard frontend', () => {
 
     await user.click(screen.getByRole('button', { name: /Blair/ }))
     await screen.findByText('Pebble’s little corner')
+    expect(screen.queryByText('Raincoat')).toBeNull()
+    expect(document.querySelector('[aria-label="Raincoat worn by Pebble"]')).toBeNull()
     const elephantHat = screen.getByText('Sun Hat').closest('article')!
     await user.click(within(elephantHat).getByRole('button', { name: /Equip/ }))
     const elephantWearable = screen.getByLabelText('Sun Hat worn by Pebble')
     expect(elephantWearable.classList.contains('wearer-elephant')).toBe(true)
     expect(elephantWearable.classList.contains('wearable-hat')).toBe(true)
     expect(elephantWearable.tagName.toLowerCase()).toBe('svg')
-    const elephantOutfit = screen.getByText('Raincoat').closest('article')!
-    await user.click(within(elephantOutfit).getByRole('button', { name: /Equip/ }))
-    expect(screen.getByLabelText('Raincoat worn by Pebble').classList.contains('wearable-outfit')).toBe(true)
+    expect(document.querySelector('.room-creature .creature-species-elephant .creature-trunk path')).toBeTruthy()
 
     await user.click(screen.getByRole('button', { name: /Lill/ }))
     await screen.findByText('Lill’s little corner')
@@ -365,15 +397,18 @@ describe('Questboard frontend', () => {
     expect(hippoWearable.classList.contains('wearer-hippo')).toBe(true)
     expect(hippoWearable.classList.contains('wearable-crown')).toBe(true)
     expect(hippoWearable.tagName.toLowerCase()).toBe('svg')
-    const hippoOutfit = screen.getByText('Ballerina Dress').closest('article')!
-    await user.click(within(hippoOutfit).getByRole('button', { name: /Equip/ }))
-    expect(screen.getByLabelText('Ballerina Dress worn by Lill').classList.contains('wearable-outfit')).toBe(true)
+    expect(screen.queryByText('Ballerina Dress')).toBeNull()
+    const nostrils = document.querySelectorAll('.room-creature .creature-species-hippo .creature-nostril')
+    expect(nostrils).toHaveLength(2)
+    nostrils.forEach(nostril => expect(nostril.parentElement?.classList.contains('creature-muzzle')).toBe(true))
 
     await user.click(screen.getByRole('button', { name: /Gigi/ }))
     await screen.findByText('Gigi’s little corner')
     const flowerCrown = screen.getByText('Flower Crown').closest('article')!
     await user.click(within(flowerCrown).getByRole('button', { name: /Equip/ }))
     expect(screen.getByLabelText('Flower Crown worn by Gigi').classList.contains('wearable-flower-crown')).toBe(true)
+    expect(document.querySelector('.room-creature .creature-species-bunny .creature-bow')).toBeTruthy()
+    expect(document.querySelector('.room-creature .creature-species-bunny .creature-lashes')).toBeTruthy()
   })
 
   it('pinch-resizes and repositions nursery objects with touch pointers', async () => {
@@ -386,7 +421,7 @@ describe('Questboard frontend', () => {
       x: 0, y: 0, left: 0, top: 0, right: 400, bottom: 300, width: 400, height: 300,
       toJSON: () => ({}),
     })
-    await user.click(screen.getByRole('button', { name: /Place/ }))
+    await user.click(within(screen.getByText('Bouncy Ball').closest('article')!).getByRole('button', { name: /Place/ }))
     const nurseryObject = await screen.findByRole('group', { name: 'Bouncy Ball in the nursery' })
     await user.click(screen.getByRole('button', { name: 'Decorate' }))
     fireEvent.pointerDown(nurseryObject, { pointerId: 1, pointerType: 'touch', clientX: 100, clientY: 100 })
@@ -448,6 +483,9 @@ describe('Questboard frontend', () => {
       expect(JSON.parse(String(feedRequests()[1][1]?.body)).treat_id).toBe('carrot')
     })
     await waitFor(() => expect(document.querySelector('.room-creature .creature')?.getAttribute('data-action')).toBe('eating'), { timeout: 4000 })
+    expect(document.querySelector('.room-creature .feeding-treat')?.getAttribute('data-stage')).toBe('travel')
+    await waitFor(() => expect(document.querySelector('.room-creature .feeding-treat')).toBeNull(), { timeout: 2000 })
+    await waitFor(() => expect(document.querySelector('.room-creature .creature')?.getAttribute('data-action')).toBe('swallowing'), { timeout: 1500 })
     expect(document.querySelectorAll('.room-creature .creature-foot')).toHaveLength(2)
     expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/treats/claim'))).toBe(true)
     expect(screen.getByText('Affection 8%')).toBeTruthy()
@@ -479,6 +517,32 @@ describe('Questboard frontend', () => {
     expect(artwork.querySelector('.creature-muzzle')).toBeTruthy()
     expect(artwork.querySelectorAll('.creature-nostril')).toHaveLength(2)
     expect(creature.getAttribute('style')).toContain('top: 82%')
+  })
+
+  it('keeps species anatomy anchored through expressive poses', () => {
+    const poses = ['idle', 'walking', 'happy', 'sleeping', 'excited', 'eating', 'chewing', 'swallowing', 'admiring', 'playing', 'hugging'] as const
+    const friends = [
+      { name: 'Lill', species: 'hippo', color: '#b9a3d5' },
+      { name: 'Remy', species: 'elephant', color: '#a3b8d5' },
+      { name: 'Gigi', species: 'bunny', color: '#f4b6c8' },
+    ]
+    const { container, rerender } = render(<Creature profile={friends[0]} action={poses[0]} />)
+
+    for (const friend of friends) {
+      for (const action of poses) {
+        rerender(<Creature profile={friend} action={action} />)
+        const svg = container.querySelector('svg')!
+        expect(svg.querySelectorAll('.creature-foot')).toHaveLength(2)
+        if (friend.species === 'hippo') {
+          expect(svg.querySelectorAll('.creature-muzzle .creature-nostril')).toHaveLength(2)
+        } else if (friend.species === 'elephant') {
+          expect(svg.querySelector('.creature-trunk path')).toBeTruthy()
+        } else {
+          expect(svg.querySelector('.creature-bow')).toBeTruthy()
+          expect(svg.querySelector('.creature-lashes')).toBeTruthy()
+        }
+      }
+    }
   })
 
   it('ignores repeated chest taps while a reward is opening', async () => {

@@ -2,7 +2,7 @@ type Profile = { name: string; species: string; color: string }
 type CreatureAction =
   | 'idle' | 'walking' | 'running' | 'hopping' | 'happy' | 'sitting'
   | 'sleeping' | 'curious' | 'confused' | 'yawning' | 'excited' | 'wake' | 'waving'
-  | 'celebrating' | 'sniffing' | 'eating' | 'chewing'
+  | 'celebrating' | 'sniffing' | 'eating' | 'chewing' | 'swallowing' | 'admiring' | 'playing' | 'hugging'
 
 export default function Creature({ profile, small = false, action = 'idle' }: {
   profile: Profile
@@ -13,10 +13,11 @@ export default function Creature({ profile, small = false, action = 'idle' }: {
   const elephant = species.includes('elephant')
   const bunny = species.includes('bunny') || species.includes('rabbit')
   const hippo = !elephant && !bunny
+  const gigi = bunny && profile.name.toLowerCase() === 'gigi'
   const color = profile.color || (elephant ? '#aab4ca' : bunny ? '#e5c4ba' : '#bfa5c9')
   const outline = elephant ? '#65758b' : bunny ? '#966e70' : '#76647e'
   const closedEyes = action === 'sleeping' || action === 'sitting'
-  const mouthOpen = action === 'eating' || action === 'chewing' || action === 'excited' || action === 'celebrating' || action === 'yawning'
+  const mouthOpen = action === 'eating' || action === 'chewing' || action === 'swallowing' || action === 'excited' || action === 'celebrating' || action === 'yawning'
 
   return <svg
     className={`creature creature-species-${elephant ? 'elephant' : bunny ? 'bunny' : 'hippo'} ${small ? 'creature-small' : ''}`}
@@ -64,9 +65,18 @@ export default function Creature({ profile, small = false, action = 'idle' }: {
       <ellipse cx="110" cy="169" rx="61" ry="43" fill={color} stroke={outline} strokeWidth="3" />
       <ellipse cx="110" cy="177" rx="37" ry="26" fill="#fff1e9" opacity=".43" />
     </>}
-    <path d="M75 164q-13-8-19 2m89-2q13-8 19 2" fill="none" stroke={outline} strokeWidth={hippo ? 11 : 9} strokeLinecap="round" />
+    <g className="creature-arms"><path d="M75 164q-13-8-19 2m89-2q13-8 19 2" fill="none" stroke={outline} strokeWidth={hippo ? 11 : 9} strokeLinecap="round" /></g>
+    <g className="creature-head">
     <ellipse cx="110" cy="105" rx={elephant ? 65 : 67} ry="62" fill={color} stroke={outline} strokeWidth="3" />
-    {elephant && <path className="creature-trunk" d="M104 117c-7 13-8 30 1 39 8 8 20 2 21-7" fill="none" stroke={outline} strokeWidth="22" strokeLinecap="round" />}
+    {elephant && <g className="creature-trunk">
+      <path d="M108 111c-8 17-11 38-1 48 10 10 25 4 25-8" fill="none" stroke={outline} strokeWidth="30" strokeLinecap="round" />
+      <path d="M108 111c-8 17-11 38-1 48 10 10 25 4 25-8" fill="none" stroke={color} strokeWidth="23" strokeLinecap="round" />
+      <ellipse cx="132" cy="151" rx="8" ry="5" fill="#765f73" />
+    </g>}
+    {gigi && <g className="creature-bow" stroke="#985e71" strokeWidth="2.5" strokeLinejoin="round">
+      <path d="M109 51Q92 34 85 47q-3 11 22 12m4-8q18-17 25-4 3 11-24 12Z" fill="#dc91a2" />
+      <circle cx="110" cy="54" r="5" fill="#f3ce8f" />
+    </g>}
     {hippo && <g className="creature-muzzle">
       <ellipse cx="110" cy="139" rx="59" ry="38" fill="#d2b6e0" stroke={outline} strokeWidth="3" />
       <ellipse className="creature-nostril" cx="87" cy="126" rx="7" ry="5" fill="#775f7f" />
@@ -74,7 +84,7 @@ export default function Creature({ profile, small = false, action = 'idle' }: {
     </g>}
     {!hippo && <ellipse cx="110" cy="126" rx={bunny ? 43 : 48} ry={bunny ? 26 : 30} fill="#fff1e9" opacity=".82" />}
     {closedEyes
-      ? <g fill="none" stroke={outline} strokeWidth="4" strokeLinecap="round"><path d="M62 99q10 10 20 0" /><path d="M138 99q10 10 20 0" /></g>
+      ? <g fill="none" stroke={outline} strokeWidth="4" strokeLinecap="round"><path d="M62 99q10 10 20 0" /><path d="M138 99q10 10 20 0" />{gigi && <g className="creature-lashes" strokeWidth="2"><path d="m63 99-4 3m9 1-3 4m68-8 4 3m-9 1 3 4" /></g>}</g>
       : <g className="creature-eyes">
         <ellipse cx={hippo ? 70 : 82} cy="98" rx="10" ry={action === 'curious' ? 14 : 12} fill="#fff" />
         <ellipse cx={hippo ? 150 : 138} cy="98" rx="10" ry={action === 'curious' ? 14 : 12} fill="#fff" />
@@ -83,23 +93,29 @@ export default function Creature({ profile, small = false, action = 'idle' }: {
         <circle cx={hippo ? 73 : 85} cy="97" r="2" fill="#fff" />
         <circle cx={hippo ? 153 : 141} cy="97" r="2" fill="#fff" />
         <path d={action === 'curious' ? 'M58 81q12-9 24-2m54 0q12-7 24 2' : 'M62 84q10-6 19-2m58 0q10-4 19 2'} fill="none" stroke={outline} strokeWidth="3" strokeLinecap="round" />
+        {gigi && <g className="creature-lashes" fill="none" stroke={outline} strokeWidth="2" strokeLinecap="round"><path d="m67 89-3-5m9 4-1-6m8 7 1-5m63 5 1-5m8 4 3-6m4 8 4-5" /></g>}
       </g>}
     <g className="creature-cheeks">
-      <ellipse cx="57" cy="126" rx={hippo ? 11 : 10} ry="7" fill="#e98c99" opacity=".6" />
-      <ellipse cx="163" cy="126" rx={hippo ? 11 : 10} ry="7" fill="#e98c99" opacity=".6" />
+      <ellipse cx="57" cy="126" rx={hippo ? 11 : 10} ry="7" fill="#e98c99" opacity={gigi ? '.78' : '.6'} />
+      <ellipse cx="163" cy="126" rx={hippo ? 11 : 10} ry="7" fill="#e98c99" opacity={gigi ? '.78' : '.6'} />
     </g>
     {hippo ? <>
+      <g className="creature-mouth">
       <path d="M76 145q34 25 68 0" fill="none" stroke="#75575c" strokeWidth="3" strokeLinecap="round" />
       {mouthOpen && <g className="creature-open-mouth">
         <path d="M78 145q32 34 64 0-4 29-32 31-28-2-32-31Z" fill="#754e61" />
         <path d="M91 166q19 10 38 0v9q-19 9-38 0Z" fill="#e8878c" />
         <path d="m88 152 6 10m38-10-6 10" stroke="#fff4e8" strokeWidth="5" strokeLinecap="round" />
       </g>}
+      </g>
     </> : <>
       {!elephant && <path className="creature-nose" d={bunny ? 'M105 124q5-7 10 0-2 7-5 7t-5-7Z' : 'M101 123q9-8 18 0-1 8-9 8t-9-8Z'} fill="#b9757e" />}
+      <g className="creature-mouth">
       <path d={mouthOpen ? 'M100 136q10 18 20 0' : action === 'confused' ? 'M104 141q7-6 13 0' : action === 'curious' ? 'M105 139q5-6 10 0t-5 6-5-6Z' : 'M99 137q11 12 22 0'} fill="none" stroke="#75575c" strokeWidth="2.5" strokeLinecap="round" />
       {mouthOpen && <path d="M101 143q9 7 18 0v5q-9 7-18 0Z" fill="#e8878c" />}
+      </g>
     </>}
+    </g>
     <path d="M90 184q20 13 40 0" fill="none" stroke="#fff" strokeOpacity=".55" strokeWidth="3" strokeLinecap="round" />
   </svg>
 }

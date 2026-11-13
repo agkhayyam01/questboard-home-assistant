@@ -15,10 +15,12 @@ Lill's mobile nursery before and after the 0.3 hippo redesign:
 
 Choose a profile, name and customize its creature, then use the simulated reward
 button to earn a chest. Open it for a collectible and use your collection to
-equip clothes and accessories or place toys, furniture, and decorations. In
-Play mode, creatures wander around the floor; tap the floor to guide them, or
-tap a toy or furniture item to play or rest. Decorate mode pauses wandering and
-lets children select, drag, pinch, and arrange objects.
+equip accessories or place toys, furniture, and decorations. Unsupported
+full-body outfits are temporarily hidden from selection; saved collection data
+is preserved. In Play mode, creatures wander around the floor; tap the floor to
+guide them, or tap a painting, ball, bed, or stuffed animal for a coordinated
+interaction. Other nursery items remain decorations. Decorate mode pauses
+wandering and lets children select, drag, pinch, and arrange objects.
 
 Open **Treats / Feed** to claim three free treats per profile each local day and
 feed the creature. Daily treats match each species' favorite. Treat quantities
