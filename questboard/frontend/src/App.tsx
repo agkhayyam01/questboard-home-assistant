@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import './App.css'
 import './Creature.css'
 import Creature from './Creature'
@@ -94,7 +94,7 @@ function WearableArt({ item, species, wearer }: { item: Item; species: string; w
   </svg>
 }
 
-function NurseryObject({ item, layout, onChange, onSave, onLayer, onReset, onSelect, selected, disabled }: {
+function NurseryObject({ item, layout, onChange, onSave, onLayer, onReset, onSelect, onInteract, selected, disabled }: {
   item: Item
   layout: Layout
   onChange: (layout: Layout) => void
@@ -102,6 +102,7 @@ function NurseryObject({ item, layout, onChange, onSave, onLayer, onReset, onSel
   onLayer: (direction: 'front' | 'back') => void
   onReset: () => void
   onSelect: () => void
+  onInteract: () => void
   selected: boolean
   disabled: boolean
 }) {
@@ -164,11 +165,19 @@ function NurseryObject({ item, layout, onChange, onSave, onLayer, onReset, onSel
     className={`nursery-object ${selected ? 'selected' : ''}`}
     role="group"
     aria-label={`${item.name} in the nursery`}
+    tabIndex={0}
     style={{ left: `${layout.x}%`, top: `${layout.y}%`, width: `${layout.size}px`, fontSize: `${layout.size * 0.9}px`, zIndex: layout.layer }}
     onPointerDown={beginGesture}
     onPointerMove={moveGesture}
     onPointerUp={endGesture}
     onPointerCancel={endGesture}
+    onClick={() => { if (disabled) onInteract() }}
+    onKeyDown={event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return
+      event.preventDefault()
+      if (disabled) onInteract()
+      else onSelect()
+    }}
   >
     <span className="nursery-object-art" title={item.name} aria-hidden="true">{item.emoji}</span>
     {selected && <div className="nursery-object-controls" aria-label={`${item.name} controls`}>
@@ -233,6 +242,8 @@ function App() {
   const [selectedObject, setSelectedObject] = useState<string | null>(null)
   const [creaturePosition, setCreaturePosition] = useState<Point>({ x: 50, y: 16 })
   const [creatureAction, setCreatureAction] = useState<CreatureAction>('idle')
+  const [creatureFacing, setCreatureFacing] = useState<'left' | 'right'>('right')
+  const [creatureTravel, setCreatureTravel] = useState<Travel | null>(null)
   const [reducedMotion, setReducedMotion] = useState(false)
   const [name, setName] = useState('')
   const [color, setColor] = useState('')
@@ -243,6 +254,9 @@ function App() {
   const openingChestRef = useRef(false)
   const creatureActionTimeout = useRef<number | undefined>(undefined)
   const idleBehaviorTimeout = useRef<number | undefined>(undefined)
+  const creaturePositionRef = useRef(creaturePosition)
+  const placedObjectsRef = useRef<{ item: Item; layout: Layout }[]>([])
+  creaturePositionRef.current = creaturePosition
   selectedRef.current = selected
   const profile = details?.profile.id === selected ? details.profile : undefined
 
@@ -290,8 +304,12 @@ function App() {
     return () => preference.removeEventListener?.('change', update)
   }, [])
   useEffect(() => {
-    setCreaturePosition({ x: 50, y: 16 })
+    const start = { x: 50, y: 16 }
+    creaturePositionRef.current = start
+    setCreaturePosition(start)
     setCreatureAction('idle')
+    setCreatureTravel(null)
+    setCreatureFacing('right')
     setSelectedObject(null)
     setDecorating(false)
   }, [profile?.id])
@@ -317,29 +335,79 @@ function App() {
   const animateCreature = useCallback((action: CreatureAction, duration = 1100) => {
     if (creatureActionTimeout.current !== undefined) window.clearTimeout(creatureActionTimeout.current)
     setCreatureAction(action)
+    setCreatureTravel(null)
     if (action !== 'idle') {
       creatureActionTimeout.current = window.setTimeout(() => setCreatureAction('idle'), duration)
     }
   }, [])
+  const moveCreature = (target: Point, action: 'walking' | 'running' | 'hopping' = 'walking', settledAction: CreatureAction = 'idle') => {
+    const origin = creaturePositionRef.current
+    const delta = distance(origin, target)
+    const duration = reducedMotion ? 0 : clamp(Math.round(delta * (action === 'running' ? 16 : 22)), 650, 1900)
+    const destination = { x: clamp(target.x, 8, 92), y: clamp(target.y, 10, 35) }
+    if (creatureActionTimeout.current !== undefined) window.clearTimeout(creatureActionTimeout.current)
+    setCreatureFacing(destination.x < origin.x ? 'left' : 'right')
+    setCreatureTravel(duration ? { ...destination, fromX: origin.x, fromY: origin.y, duration } : null)
+    creaturePositionRef.current = destination
+    setCreaturePosition(destination)
+    setCreatureAction(duration ? action : settledAction)
+    if (duration) {
+      creatureActionTimeout.current = window.setTimeout(() => {
+        setCreatureTravel(null)
+        setCreatureAction(settledAction)
+        if (settledAction !== 'idle') {
+          creatureActionTimeout.current = window.setTimeout(() => setCreatureAction('idle'), 2600)
+        }
+      }, duration)
+    } else if (settledAction !== 'idle') {
+      creatureActionTimeout.current = window.setTimeout(() => setCreatureAction('idle'), 2600)
+    }
+  }
   useEffect(() => () => {
     if (creatureActionTimeout.current !== undefined) window.clearTimeout(creatureActionTimeout.current)
     if (idleBehaviorTimeout.current !== undefined) window.clearTimeout(idleBehaviorTimeout.current)
   }, [])
   useEffect(() => {
-    if (!profile || decorating || reducedMotion || busy) return
-    const wander = () => {
-      setCreaturePosition({ x: 12 + Math.random() * 76, y: 13 + Math.random() * 12 })
-      animateCreature('walking', 950)
-      if (Math.random() < 0.45) {
-        idleBehaviorTimeout.current = window.setTimeout(() => animateCreature(Math.random() < 0.5 ? 'sitting' : 'waving', 1500), 1000)
+    if (!profile || decorating || busy) return
+    const species = profile.species.toLowerCase()
+    const chooseBehavior = () => {
+      const objects = placedObjectsRef.current
+      const preferCategory = species.includes('elephant') ? 'decoration' : species.includes('hippo') ? 'furniture' : 'toy'
+      const preferred = objects.filter(({ item }) => item.category === preferCategory)
+      const target = objects.length && Math.random() < (preferred.length ? 0.62 : 0.36)
+        ? (preferred.length ? preferred : objects)[Math.floor(Math.random() * (preferred.length || objects.length))]
+        : undefined
+      if (target) {
+        const { item, layout } = target
+        const destination = {
+          x: clamp(layout.x + (layout.x > 50 ? -13 : 13), 8, 92),
+          y: clamp(layout.y - 62, 10, 35),
+        }
+        const name = item.name.toLowerCase()
+        const reaction: CreatureAction = item.category === 'furniture'
+          ? (/bed|sofa|couch|hammock/.test(name) ? 'sleeping' : 'sitting')
+          : item.category === 'toy' ? 'excited' : 'curious'
+        moveCreature(destination, species.includes('bunny') || species.includes('rabbit') ? 'hopping' : 'walking', reaction)
+      } else {
+        const resting = Math.random() < (species.includes('hippo') ? 0.48 : 0.2)
+        moveCreature(
+          { x: 12 + Math.random() * 76, y: 12 + Math.random() * 19 },
+          species.includes('bunny') && Math.random() < 0.45 ? 'hopping' : Math.random() < 0.25 ? 'running' : 'walking',
+          resting ? (Math.random() < 0.5 ? 'sitting' : 'sleeping') : Math.random() < 0.5 ? 'curious' : 'idle',
+        )
       }
     }
-    const interval = window.setInterval(wander, 10000)
+    const schedule = () => {
+      idleBehaviorTimeout.current = window.setTimeout(() => {
+        chooseBehavior()
+        schedule()
+      }, 6500 + Math.random() * 5500)
+    }
+    schedule()
     return () => {
-      window.clearInterval(interval)
       if (idleBehaviorTimeout.current !== undefined) window.clearTimeout(idleBehaviorTimeout.current)
     }
-  }, [animateCreature, busy, decorating, profile, reducedMotion])
+  }, [busy, decorating, profile, reducedMotion])
   const directCreature = (event: ReactMouseEvent<HTMLDivElement>) => {
     if (decorating) {
       if (!(event.target as HTMLElement).closest('.nursery-object')) setSelectedObject(null)
@@ -348,11 +416,10 @@ function App() {
     const target = event.target as HTMLElement
     if (target.closest('.nursery-object, .room-creature') || !target.closest('.room-floor, .rug')) return
     const bounds = event.currentTarget.getBoundingClientRect()
-    setCreaturePosition({
+    moveCreature({
       x: clamp((event.clientX - bounds.left) / Math.max(bounds.width, 1) * 100, 12, 88),
       y: clamp((event.clientY - bounds.top) / Math.max(bounds.height, 1) * 100 - 65, 12, 25),
-    })
-    animateCreature('walking', 950)
+    }, 'walking')
   }
   const openChest = async () => {
     if (selected === null || busy || openingChestRef.current) return
@@ -381,6 +448,18 @@ function App() {
     const index = items.findIndex(candidate => candidate.id === item.id)
     return { item, layout: layoutOverrides[key] ?? item.layout ?? defaultLayout(index) }
   })
+  placedObjectsRef.current = placedObjects
+  const interactWithObject = (item: Item, layout: Layout) => {
+    const target = {
+      x: clamp(layout.x + (layout.x > 50 ? -13 : 13), 8, 92),
+      y: clamp(layout.y - 62, 10, 35),
+    }
+    const name = item.name.toLowerCase()
+    const reaction: CreatureAction = item.category === 'furniture'
+      ? (/bed|sofa|couch|hammock/.test(name) ? 'sleeping' : 'sitting')
+      : item.category === 'toy' ? 'excited' : 'curious'
+    moveCreature(target, item.category === 'toy' ? 'hopping' : 'walking', reaction)
+  }
   const persistLayout = (item: Item, layout: Layout) => {
     if (profile) void mutate(`profiles/${encodeURIComponent(profile.id)}/items/${encodeURIComponent(item.id)}/layout`, layout, 'PUT')
   }
@@ -427,8 +506,15 @@ function App() {
               <div className="room-sun"><DecorIcon kind="sun" /></div><div className="wall-frame"><DecorIcon kind="flower" /></div><div className="wall-stars"><DecorIcon kind="sparkle" /><DecorIcon kind="sparkle" /></div><div className="bunting" aria-hidden="true" />
               <div className="window"><div className="window-sky">☁ <span>☀</span></div><div className="window-cross" /></div>
               <div className="room-floor" /><div className="rug" />
-              <button type="button" className={`room-creature creature-${creatureAction}`} style={{ left: `${creaturePosition.x}%`, top: `${creaturePosition.y}%` }} aria-label={`Make ${profile.name} happy`} onClick={() => { if (!decorating) animateCreature('happy') }}>
-                <span className="creature-body"><Creature profile={profile} />{equipped.map(item => <WearableArt key={item.id} item={item} species={profile.species} wearer={profile.name} />)}</span>
+              <button type="button" className={`room-creature creature-${creatureAction} creature-facing-${creatureFacing}`} style={{
+                left: `${creaturePosition.x}%`, top: `${creaturePosition.y}%`,
+                '--travel-from-x': `${creatureTravel?.fromX ?? creaturePosition.x}%`,
+                '--travel-from-y': `${creatureTravel?.fromY ?? creaturePosition.y}%`,
+                '--travel-to-x': `${creatureTravel?.x ?? creaturePosition.x}%`,
+                '--travel-to-y': `${creatureTravel?.y ?? creaturePosition.y}%`,
+                '--travel-duration': `${creatureTravel?.duration ?? 0}ms`,
+              } as CSSProperties} aria-label={`Make ${profile.name} happy`} onClick={() => { if (!decorating) animateCreature(creatureAction === 'sleeping' ? 'wake' : 'happy') }}>
+                <span className="creature-body"><Creature profile={profile} action={creatureAction} />{equipped.map(item => <WearableArt key={item.id} item={item} species={profile.species} wearer={profile.name} />)}</span>
               </button>
               {placedObjects.map(({ item, layout }) => <NurseryObject
                 key={item.id}
@@ -441,6 +527,7 @@ function App() {
                 onSave={next => persistLayout(item, next)}
                 onLayer={direction => changeLayer(item, layout, direction)}
                 onReset={() => resetLayout(item)}
+                onInteract={() => { if (!busy && !decorating) interactWithObject(item, layout) }}
               />)}
               <div className="room-label"><span>♥</span> {profile.name} is happy you’re here!</div>
             </div>

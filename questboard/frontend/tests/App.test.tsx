@@ -229,6 +229,26 @@ describe('Questboard frontend', () => {
     expect(screen.getByLabelText('Star Glasses worn by Clover')).toBeTruthy()
   })
 
+  it('animates expressive poses and lets keyboard users invite a creature to play with a toy', async () => {
+    createApi()
+    render(<App />)
+    await screen.findByText('Clover’s little corner')
+
+    const creature = screen.getByRole('button', { name: 'Make Clover happy' })
+    fireEvent.click(creature)
+    const artwork = document.querySelector('.room-creature .creature')!
+    expect(artwork.getAttribute('data-action')).toBe('happy')
+    expect(artwork.querySelectorAll('.creature-foot')).toHaveLength(2)
+
+    await userEvent.click(screen.getByRole('button', { name: /Place/ }))
+    const toy = await screen.findByRole('group', { name: 'Bouncy Ball in the nursery' })
+    toy.focus()
+    fireEvent.keyDown(toy, { key: 'Enter' })
+    expect(creature.classList.contains('creature-hopping')).toBe(true)
+    expect(creature.getAttribute('style')).toContain('left: 63%')
+    expect(artwork.getAttribute('data-action')).toBe('hopping')
+  })
+
   it('anchors wearables on the right body area for each creature species', async () => {
     createApi()
     const user = userEvent.setup()
