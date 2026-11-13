@@ -11,6 +11,21 @@ Lill's mobile nursery before and after the 0.3 hippo redesign:
 [before (0.2.0)](screenshots/lill-before.png) ·
 [after (0.3.0)](screenshots/lill-after.png).
 
+## 0.3.1 animation checks
+
+Captured nursery scenes from the running app:
+
+| Scene | Screenshot |
+|---|---|
+| Remy, elephant | ![Remy in the nursery](screenshots/questboard-031-remy.png) |
+| Gigi, bunny | ![Gigi in the nursery](screenshots/questboard-031-gigi.png) |
+| Lill, hippo | ![Lill in the nursery](screenshots/questboard-031-lill.png) |
+| Feeding | ![Treat entering Remy’s mouth](screenshots/questboard-031-feeding.png) |
+| Painting admiration | ![Remy admiring the painting](screenshots/questboard-031-painting.png) |
+| Ball play | ![Remy playing with the ball](screenshots/questboard-031-ball.png) |
+| Bedtime | ![Remy sleeping in bed](screenshots/questboard-031-bed.png) |
+| Stuffed-animal hug | ![Remy hugging a stuffed animal](screenshots/questboard-031-plush.png) |
+
 ## Play
 
 Choose a profile, name and customize its creature, then use the simulated reward
