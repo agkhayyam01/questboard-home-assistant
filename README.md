@@ -51,7 +51,7 @@ results; no Home Assistant instance was used.
 | Ball rolls during play | ![Ball rolling](screenshots/questboard-040-ball-roll.png) |
 | Stuffed animal is picked up and hugged | ![Remy hugging the teddy](screenshots/questboard-040-plush-hug.png) |
 | Painting admiration | ![Remy admiring the painting](screenshots/questboard-040-painting-admiration.png) |
-| Feeding sequence, including the treat entering the mouth | ![Remy eating a strawberry](screenshots/questboard-040-feeding.png) |
+| Complete feeding sequence | [5-second rendered recording](screenshots/questboard-040-feeding-sequence.webm) · ![Remy eating a strawberry](screenshots/questboard-040-feeding.png) |
 | Autonomous object interaction | ![Autonomous ball play](screenshots/questboard-040-autonomous.png) |
 | iPhone-sized nursery layout (390px viewport) | ![Questboard nursery on a phone-sized viewport](screenshots/questboard-040-iphone-nursery.png) |
 
