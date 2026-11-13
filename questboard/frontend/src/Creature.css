@@ -92,13 +92,11 @@
 @keyframes trunk-chew{50%{transform:translateY(3px) rotate(4deg)}}
 .room-creature{width:100px}
 .room-creature.creature-bed-interaction{z-index:1001}
-.creature-in-bed .creature-bed-head,.creature-in-bed .creature-head{transform:translate(-28px,24px)}
-.creature-in-bed .creature-bed-body{transform-box:fill-box;transform-origin:center;transform:translate(24px,-12px) scale(1.05,.86)}
 .creature-in-bed .creature-ears{animation:none}
 .room-creature.creature-in-bed.creature-facing-left{transform:translate(-50%,-100%)}
 .room-creature.creature-petting .creature-head{animation:creature-pet .35s ease-in-out 3}
 .room-creature.creature-petting .creature-tail,.room-creature.creature-petting .creature-ears{animation:pet-follow-through .45s ease-in-out 3}
-@keyframes creature-sleep-in-bed{0%,100%{transform:translate(24px,-12px) scale(1.05,.86)}50%{transform:translate(24px,-13px) scale(1.06,.87)}}
+@keyframes creature-sleep-in-bed{0%,100%{transform:translateY(0)}50%{transform:translateY(-1px)}}
 @keyframes creature-pet{50%{transform:rotate(-7deg) translateY(2px)}}
 @keyframes pet-follow-through{50%{transform:rotate(9deg) translateY(-2px)}}
 @keyframes creature-hug{50%{transform:translateY(-8px) rotate(12deg) scaleX(.94)}to{transform:translateY(-5px) rotate(20deg) scaleX(.9)}}

@@ -62,10 +62,16 @@ The phone capture uses a 390px viewport with disposable data and no saved layout
 rows; compact positions are presentation defaults and are not written to the
 profile. Existing saved layouts continue to take precedence.
 
+The sleep and hug close-ups were captured from the running app only after the
+browser confirmed `data-action="sleeping"` with Remy in bed and
+`data-action="hugging"` with the floor toy hidden and attached to Remy. The short
+recording shows both live interaction sequences.
+
 | Review item | Updated rendered evidence |
 |---|---|
 | Remy tucked into the bed with a pillow and visible quilt | ![Remy tucked under the quilt](screenshots/questboard-041-bed-sleeping.png) |
 | Teddy visibly held between Remy’s wrapping arms | ![Remy hugging the teddy](screenshots/questboard-041-plush-hug.png) |
+| Sleep and hug interaction sequences | [Rendered browser recording](screenshots/questboard-041-sleep-hug-interactions.webm) |
 | Separated default objects and character on an iPhone-sized screen | ![Nursery layout at 390px](screenshots/questboard-041-iphone-layout.png) |
 
 ## Play

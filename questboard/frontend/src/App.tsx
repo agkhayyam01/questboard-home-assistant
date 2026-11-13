@@ -675,7 +675,7 @@ function App() {
       setCreatureAction('curious')
       scheduleInteraction(version, () => {
         setInteractionPhase('interaction')
-        setCreatureAction(kind === 'painting' ? 'admiring' : kind === 'ball' ? 'playing' : kind === 'bed' ? 'sleeping' : 'hugging')
+        setCreatureAction(kind === 'painting' ? 'admiring' : kind === 'ball' ? 'playing' : kind === 'bed' ? 'sleeping' : kind === 'plush' ? 'curious' : 'hugging')
 
         if (kind === 'ball') {
           scheduleInteraction(version, () => {
@@ -699,6 +699,7 @@ function App() {
         } else if (kind === 'plush') {
           scheduleInteraction(version, () => {
             setHeldObject({ key, emoji: item.emoji })
+            setCreatureAction('hugging')
             scheduleInteraction(version, () => {
               setInteractionPhase('reaction')
               setCreatureAction('happy')

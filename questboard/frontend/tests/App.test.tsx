@@ -334,7 +334,9 @@ describe('Questboard frontend', () => {
     const artwork = document.querySelector('.room-creature .creature')!
     expect(artwork.getAttribute('data-pose')).toBe('reclined')
     expect(artwork.querySelector('.creature-bed-head')).not.toBeNull()
-    expect(artwork.querySelector('.creature-bed-body')).not.toBeNull()
+    expect(artwork.querySelector('.creature-bed-head')?.getAttribute('transform')).toBe('translate(-35 -12)')
+    expect(artwork.querySelector('.creature-bed-body')?.getAttribute('transform')).toContain('scale(1.15 .85)')
+    expect(artwork.querySelector('.creature-head')?.getAttribute('transform')).toBe('translate(-35 -12)')
     expect(artwork.querySelector('.creature-bed-pillow')).not.toBeNull()
     expect(artwork.querySelector('.creature-bedding')?.parentElement).toBe(artwork)
     expect(bed.getAttribute('style')).toContain('width: 120px')
@@ -411,7 +413,8 @@ describe('Questboard frontend', () => {
     const plush = await screen.findByRole('group', { name: 'Stuffed Bunny in the nursery' })
     fireEvent.click(plush)
     await waitFor(() => expect(plush.classList.contains('object-interacting-plush')).toBe(true), { timeout: 2500 })
-    await waitFor(() => expect(creature.getAttribute('data-action')).toBe('hugging'))
+    expect(creature.getAttribute('data-action')).toBe('curious')
+    await waitFor(() => expect(creature.getAttribute('data-action')).toBe('hugging'), { timeout: 5000 })
     expect(creature.getAttribute('data-action')).toBe('hugging')
     const huggedToy = await waitFor(() => {
       const toy = creature.querySelector('.creature-hugged-toy')
