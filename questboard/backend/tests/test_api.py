@@ -175,6 +175,70 @@ def test_nursery_layout_rejects_invalid_or_unplaced_items(client):
     assert client.delete("/api/profiles/remy/items/plant/layout").status_code == 400
 
 
+def test_daily_treat_claim_is_profile_scoped_timezone_aware_and_persistent(client, monkeypatch):
+    monkeypatch.setenv("HOUSEHOLD_TIMEZONE", "America/Los_Angeles")
+    store = app.state.store
+    with store.connect(write=True) as db:
+        db.execute("UPDATE profiles SET name = 'Remy saved' WHERE id = 'remy'")
+        db.execute("INSERT INTO inventory (profile_id, item_id, equipped) VALUES ('remy', 'bow', 1)")
+
+    before = client.get("/api/profiles/remy/treats").json()
+    assert before["daily"]["claimed"] is False
+    assert before["daily"]["quantity"] == 3
+    assert before["daily"]["timezone"] == "America/Los_Angeles"
+    assert {t["id"]: t["quantity"] for t in before["treats"]}["strawberry"] == 0
+
+    responses = []
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        responses = list(executor.map(lambda _: client.post("/api/profiles/remy/treats/claim"), range(8)))
+    assert sum(response.json()["claimed"] for response in responses) == 1
+    assert client.get("/api/profiles/remy/treats").json()["treats"][1]["quantity"] == 3
+    assert client.post("/api/profiles/gigi/treats/claim").json()["claimed"] is True
+
+    app.state.store = Store(store.path.parent)
+    app.state.store.initialize()
+    assert client.get("/api/profiles/remy").json()["profile"]["name"] == "Remy saved"
+    assert next(i for i in client.get("/api/profiles/remy").json()["items"] if i["id"] == "bow")["equipped"]
+    assert client.get("/api/profiles/remy/treats").json()["treats"][1]["quantity"] == 3
+    assert client.get("/api/profiles/remy/treats").json()["daily"]["claimed"] is True
+
+
+def test_feeding_is_exactly_once_and_updates_favorite_affection(client):
+    store = app.state.store
+    with store.connect(write=True) as db:
+        db.execute(
+            "INSERT INTO treat_inventory (profile_id, treat_id, quantity) VALUES ('gigi', 'carrot', 3)"
+        )
+    url = "/api/profiles/gigi/treats/feed"
+    body = {"treat_id": "carrot", "request_id": "one-feed"}
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        responses = list(executor.map(lambda _: client.post(url, json=body), range(8)))
+    assert all(response.status_code == 200 for response in responses)
+    results = [response.json() for response in responses]
+    assert {result["quantity"] for result in results} == {2}
+    assert {result["affection"] for result in results} == {8}
+    assert all(result["favorite"] for result in results)
+    assert client.get("/api/profiles/gigi/treats").json()["affection"] == 8
+    assert client.post(url, json={"treat_id": "strawberry", "request_id": "one-feed"}).status_code == 409
+    assert client.post(url, json={"treat_id": "carrot", "request_id": "second-feed"}).status_code == 200
+    assert client.get("/api/profiles/gigi/treats").json()["treats"][0]["quantity"] == 1
+    assert client.post(url, json={"treat_id": "moonberry", "request_id": "empty"}).status_code == 409
+
+
+def test_special_treat_reward_is_idempotent_and_independent(client):
+    url = "/api/profiles/remy/treats/simulate-reward"
+    headers = {"Idempotency-Key": "milestone-1"}
+    first = client.post(url, headers=headers)
+    assert first.status_code == 200
+    assert first.json()["granted"] is True
+    assert next(t for t in first.json()["treats"] if t["id"] == "moonberry")["quantity"] == 1
+    repeat = client.post(url, headers=headers)
+    assert repeat.status_code == 200
+    assert repeat.json()["granted"] is False
+    assert next(t for t in repeat.json()["treats"] if t["id"] == "moonberry")["quantity"] == 1
+    assert client.post("/api/profiles/gigi/treats/simulate-reward", headers=headers).status_code == 409
+
+
 def test_frontend_and_api_fallback(client, tmp_path):
     dist = tmp_path / "dist"
     dist.mkdir()
