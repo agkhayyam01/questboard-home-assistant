@@ -75,32 +75,6 @@ export default function Creature({ profile, small = false, action = 'idle', inBe
       <ellipse cx="110" cy="169" rx="61" ry="43" fill={color} stroke={outline} strokeWidth="3" />
       <ellipse cx="110" cy="177" rx="37" ry="26" fill="#fff1e9" opacity=".43" />
     </>}
-    {action === 'hugging' && huggingEmoji && <g className="creature-hugged-toy" role="img" aria-label="Stuffed animal being hugged">
-      <title>{huggingEmoji} stuffed animal</title>
-      <ellipse cx="110" cy="190" rx="24" ry="5" fill="#604c55" opacity=".12" />
-      <circle cx="97" cy="151" r="9" fill="#b8794f" stroke="#714b38" strokeWidth="2.5" />
-      <circle cx="123" cy="151" r="9" fill="#b8794f" stroke="#714b38" strokeWidth="2.5" />
-      <ellipse cx="110" cy="177" rx="18" ry="21" fill="#c98d5d" stroke="#714b38" strokeWidth="3" />
-      <ellipse cx="97" cy="183" rx="9" ry="8" fill="#c98d5d" stroke="#714b38" strokeWidth="2.5" />
-      <ellipse cx="123" cy="183" rx="9" ry="8" fill="#c98d5d" stroke="#714b38" strokeWidth="2.5" />
-      <ellipse cx="99" cy="195" rx="11" ry="8" fill="#c98d5d" stroke="#714b38" strokeWidth="2.5" />
-      <ellipse cx="121" cy="195" rx="11" ry="8" fill="#c98d5d" stroke="#714b38" strokeWidth="2.5" />
-      <circle cx="110" cy="158" r="18" fill="#d9a06c" stroke="#714b38" strokeWidth="3" />
-      <circle cx="104" cy="156" r="2" fill="#493e46" />
-      <circle cx="116" cy="156" r="2" fill="#493e46" />
-      <ellipse cx="110" cy="164" rx="7" ry="5" fill="#f3d9bd" />
-      <path d="m108 162 2-2 2 2-2 2Z" fill="#714b38" />
-    </g>}
-    <g className="creature-arms">
-      {action === 'hugging'
-        ? <>
-          <path className="creature-hug-arm" d="M75 160C61 174 70 192 88 189l9-10" fill="none" stroke={outline} strokeWidth={hippo ? 11 : 9} strokeLinecap="round" />
-          <path className="creature-hug-arm" d="M145 160c14 14 5 32-13 29l-9-10" fill="none" stroke={outline} strokeWidth={hippo ? 11 : 9} strokeLinecap="round" />
-        </>
-        : inBed
-          ? <path d="M75 164q-8 10 5 18m65-18q8 10-5 18" fill="none" stroke={outline} strokeWidth={hippo ? 11 : 9} strokeLinecap="round" />
-          : <path d="M75 164q-13-8-19 2m89-2q13-8 19 2" fill="none" stroke={outline} strokeWidth={hippo ? 11 : 9} strokeLinecap="round" />}
-    </g>
     </g>
     <g className="creature-head">
     <ellipse cx="110" cy="105" rx={elephant ? 65 : 67} ry="62" fill={color} stroke={outline} strokeWidth="3" />
@@ -150,6 +124,32 @@ export default function Creature({ profile, small = false, action = 'idle', inBe
       <path d="M103 106c-9 13-16 31-9 44 5 11 17 15 28 10 9-4 15-12 14-19-1-6-7-8-11-4-3 3-1 7 2 9-2 6-9 10-14 7-7-4-4-15 0-25 4-9 8-17 12-24Z" fill={color} stroke={outline} strokeWidth="3" strokeLinejoin="round" />
       <path d="M129 144q3-2 6 0" fill="none" stroke="#765f73" strokeWidth="2" strokeLinecap="round" />
     </g>}
+    </g>
+    {action === 'hugging' && huggingEmoji && <g className="creature-hugged-toy" role="img" aria-label="Stuffed animal being hugged">
+      <title>{huggingEmoji} stuffed animal</title>
+      <ellipse cx="110" cy="190" rx="24" ry="5" fill="#604c55" opacity=".12" />
+      <circle cx="97" cy="151" r="9" fill="#b8794f" stroke="#714b38" strokeWidth="2.5" />
+      <circle cx="123" cy="151" r="9" fill="#b8794f" stroke="#714b38" strokeWidth="2.5" />
+      <ellipse cx="110" cy="177" rx="18" ry="21" fill="#c98d5d" stroke="#714b38" strokeWidth="3" />
+      <ellipse cx="97" cy="183" rx="9" ry="8" fill="#c98d5d" stroke="#714b38" strokeWidth="2.5" />
+      <ellipse cx="123" cy="183" rx="9" ry="8" fill="#c98d5d" stroke="#714b38" strokeWidth="2.5" />
+      <ellipse cx="99" cy="195" rx="11" ry="8" fill="#c98d5d" stroke="#714b38" strokeWidth="2.5" />
+      <ellipse cx="121" cy="195" rx="11" ry="8" fill="#c98d5d" stroke="#714b38" strokeWidth="2.5" />
+      <circle cx="110" cy="158" r="18" fill="#d9a06c" stroke="#714b38" strokeWidth="3" />
+      <circle cx="104" cy="156" r="2" fill="#493e46" />
+      <circle cx="116" cy="156" r="2" fill="#493e46" />
+      <ellipse cx="110" cy="164" rx="7" ry="5" fill="#f3d9bd" />
+      <path d="m108 162 2-2 2 2-2 2Z" fill="#714b38" />
+    </g>}
+    <g className="creature-arms">
+      {action === 'hugging'
+        ? <>
+          <path className="creature-hug-arm" d="M75 160C61 174 70 192 88 189l9-10" fill="none" stroke={outline} strokeWidth={hippo ? 11 : 9} strokeLinecap="round" />
+          <path className="creature-hug-arm" d="M145 160c14 14 5 32-13 29l-9-10" fill="none" stroke={outline} strokeWidth={hippo ? 11 : 9} strokeLinecap="round" />
+        </>
+        : inBed
+          ? <path d="M75 164q-8 10 5 18m65-18q8 10-5 18" fill="none" stroke={outline} strokeWidth={hippo ? 11 : 9} strokeLinecap="round" />
+          : <path d="M75 164q-13-8-19 2m89-2q13-8 19 2" fill="none" stroke={outline} strokeWidth={hippo ? 11 : 9} strokeLinecap="round" />}
     </g>
     {inBed && <g className="creature-bedding">
       <path d="M67 158q62-21 132-3l8 46q-70 24-140 0Z" fill="#79b8d5" stroke="#527c99" strokeWidth="4" strokeLinejoin="round" />
