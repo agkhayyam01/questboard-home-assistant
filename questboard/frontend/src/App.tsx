@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import './App.css'
+import './Creature.css'
+import Creature from './Creature'
 
 type Profile = { id: string | number; owner: string; species: string; name: string; color: string; chests: number }
 type Layout = { x: number; y: number; size: number; layer: number }
@@ -10,7 +12,8 @@ type Item = { id: string | number; name: string; category: 'outfit' | 'accessory
 type Details = { profile: Profile; items: Item[] }
 type Tab = 'all' | 'outfit' | 'accessory' | 'toy' | 'furniture' | 'decoration'
 type Point = { x: number; y: number }
-type CreatureAction = 'idle' | 'walking' | 'happy' | 'sitting' | 'waving' | 'celebrating'
+type CreatureAction = 'idle' | 'walking' | 'running' | 'hopping' | 'happy' | 'sitting' | 'sleeping' | 'curious' | 'excited' | 'wake' | 'waving' | 'celebrating'
+type Travel = { x: number; y: number; fromX: number; fromY: number; duration: number }
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 const defaultSlots: Point[] = [
@@ -204,30 +207,6 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     throw new Error(message)
   }
   return response.json() as Promise<T>
-}
-
-function Creature({ profile, small = false }: { profile: Profile; small?: boolean }) {
-  const species = profile.species.toLowerCase()
-  const elephant = species.includes('elephant')
-  const bunny = species.includes('bunny') || species.includes('rabbit')
-  const color = profile.color || (elephant ? '#aab4ca' : bunny ? '#e5c4ba' : '#bfa5c9')
-  return (
-    <svg className={small ? 'creature creature-small' : 'creature'} viewBox="0 0 220 230" role="img" aria-label={`${profile.name}, the ${profile.species}`}>
-      <ellipse cx="110" cy="214" rx="70" ry="9" fill="#795d59" opacity=".12" />
-      {bunny && <><ellipse cx="72" cy="58" rx="19" ry="58" fill={color} transform="rotate(-16 72 58)" /><ellipse cx="148" cy="58" rx="19" ry="58" fill={color} transform="rotate(16 148 58)" /><ellipse cx="72" cy="54" rx="8" ry="37" fill="#edb8b2" transform="rotate(-16 72 54)" /><ellipse cx="148" cy="54" rx="8" ry="37" fill="#edb8b2" transform="rotate(16 148 54)" /></>}
-      {elephant && <><ellipse cx="48" cy="100" rx="37" ry="45" fill={color} /><ellipse cx="172" cy="100" rx="37" ry="45" fill={color} /><ellipse cx="48" cy="100" rx="24" ry="31" fill="#eabcb9" opacity=".65" /><ellipse cx="172" cy="100" rx="24" ry="31" fill="#eabcb9" opacity=".65" /></>}
-      {!bunny && !elephant && <><ellipse cx="58" cy="71" rx="18" ry="20" fill={color} /><ellipse cx="162" cy="71" rx="18" ry="20" fill={color} /><ellipse cx="58" cy="71" rx="9" ry="10" fill="#eabcb9" /><ellipse cx="162" cy="71" rx="9" ry="10" fill="#eabcb9" /></>}
-      <ellipse cx="110" cy="175" rx="59" ry="40" fill={color} />
-      <ellipse cx="63" cy="195" rx="24" ry="16" fill={color} stroke="#ffffff" strokeOpacity=".22" strokeWidth="3" />
-      <ellipse cx="157" cy="195" rx="24" ry="16" fill={color} stroke="#ffffff" strokeOpacity=".22" strokeWidth="3" />
-      <ellipse cx="110" cy="109" rx="68" ry="61" fill={color} />
-      {!bunny && !elephant && <ellipse cx="110" cy="132" rx="48" ry="30" fill="#e2cad5" opacity=".75" />}
-      <ellipse cx="82" cy="110" rx="5" ry="6" fill="#493e46" /><ellipse cx="138" cy="110" rx="5" ry="6" fill="#493e46" />
-      <circle cx="69" cy="126" r="8" fill="#e9949a" opacity=".45" /><circle cx="151" cy="126" r="8" fill="#e9949a" opacity=".45" />
-      {elephant ? <path d="M101 125 Q96 147 106 156 Q117 165 126 151" fill="none" stroke={color} strokeWidth="20" strokeLinecap="round" /> : <><ellipse cx="110" cy="127" rx="6" ry="4" fill="#8d646a" /><path d="M110 132 Q103 141 97 135 M110 132 Q117 141 123 135" fill="none" stroke="#75575c" strokeWidth="2.5" strokeLinecap="round" /></>}
-      <path d="M89 175 Q110 187 131 175" fill="none" stroke="#fff" strokeOpacity=".35" strokeWidth="3" strokeLinecap="round" />
-    </svg>
-  )
 }
 
 function Chest({ open = false }: { open?: boolean }) {
