@@ -1,5 +1,5 @@
 name: Questboard Creature Companions
-version: "0.3.0"
+version: "0.3.1"
 slug: questboard
 description: A cozy creature companion game with simulated rewards.
 options:

@@ -20,8 +20,10 @@ type TreatDetails = {
   daily: { claimed: boolean; quantity: number; next_available_at: string; timezone: string }
 }
 type Point = { x: number; y: number }
-type CreatureAction = 'idle' | 'walking' | 'running' | 'hopping' | 'happy' | 'sitting' | 'sleeping' | 'curious' | 'confused' | 'yawning' | 'excited' | 'wake' | 'waving' | 'celebrating' | 'sniffing' | 'eating' | 'chewing'
+type CreatureAction = 'idle' | 'walking' | 'running' | 'hopping' | 'happy' | 'sitting' | 'sleeping' | 'curious' | 'confused' | 'yawning' | 'excited' | 'wake' | 'waving' | 'celebrating' | 'sniffing' | 'eating' | 'chewing' | 'swallowing' | 'admiring' | 'playing' | 'hugging'
 type Travel = { x: number; y: number; fromX: number; fromY: number; duration: number; startedAt: number }
+type InteractionKind = 'painting' | 'ball' | 'bed' | 'plush'
+type FeedingStage = 'look' | 'travel'
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 const defaultSlots: Point[] = [
@@ -37,6 +39,14 @@ const defaultLayout = (index: number): Layout => ({
 })
 const objectKey = (profileId: string | number, itemId: string | number) => `${profileId}:${itemId}`
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y)
+const interactionFor = (item: Item): InteractionKind | null => {
+  const name = item.name.toLowerCase()
+  if (item.category === 'decoration' && /painting|picture|portrait/.test(name)) return 'painting'
+  if (item.category === 'toy' && /ball/.test(name)) return 'ball'
+  if (item.category === 'furniture' && /bed|sofa|couch|hammock/.test(name)) return 'bed'
+  if (item.category === 'toy' && /stuffed|plush|teddy|doll/.test(name)) return 'plush'
+  return null
+}
 const midpoint = (points: Point[]) => ({
   x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
   y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
@@ -101,7 +111,7 @@ function WearableArt({ item, species, wearer }: { item: Item; species: string; w
   </svg>
 }
 
-function NurseryObject({ item, layout, onChange, onSave, onLayer, onReset, onSelect, onInteract, selected, disabled, interacting }: {
+function NurseryObject({ item, layout, onChange, onSave, onLayer, onReset, onSelect, onInteract, selected, disabled, interacting, interactionKind, interactionDirection, canInteract }: {
   item: Item
   layout: Layout
   onChange: (layout: Layout) => void
@@ -113,6 +123,9 @@ function NurseryObject({ item, layout, onChange, onSave, onLayer, onReset, onSel
   selected: boolean
   disabled: boolean
   interacting?: boolean
+  interactionKind?: InteractionKind | null
+  interactionDirection?: 'left' | 'right'
+  canInteract?: boolean
 }) {
   const pointers = useRef(new Map<number, Point>())
   const gesture = useRef<{ layout: Layout; center: Point; distance: number } | null>(null)
@@ -170,21 +183,21 @@ function NurseryObject({ item, layout, onChange, onSave, onLayer, onReset, onSel
   const stopPointer = (event: ReactPointerEvent) => event.stopPropagation()
 
   return <div
-    className={`nursery-object ${selected ? 'selected' : ''} ${interacting ? `object-interacting object-interacting-${item.category}` : ''}`}
+    className={`nursery-object ${selected ? 'selected' : ''} ${interacting ? `object-interacting object-interacting-${item.category} object-interacting-${interactionKind ?? ''}` : ''}`}
     role="group"
     aria-label={`${item.name} in the nursery`}
     tabIndex={0}
-    style={{ left: `${layout.x}%`, top: `${layout.y}%`, width: `${layout.size}px`, fontSize: `${layout.size * 0.9}px`, zIndex: layout.layer }}
+    style={{ left: `${layout.x}%`, top: `${layout.y}%`, width: `${layout.size}px`, fontSize: `${layout.size * 0.9}px`, zIndex: layout.layer, '--roll-distance': interactionDirection === 'left' ? '-42px' : '42px' } as CSSProperties}
     onPointerDown={beginGesture}
     onPointerMove={moveGesture}
     onPointerUp={endGesture}
     onPointerCancel={endGesture}
-    onClick={() => { if (disabled) onInteract() }}
+    onClick={() => { if (disabled && canInteract) onInteract() }}
     onKeyDown={event => {
       if (event.target !== event.currentTarget) return
       if (event.key !== 'Enter' && event.key !== ' ') return
       event.preventDefault()
-      if (disabled) onInteract()
+      if (disabled && canInteract) onInteract()
       else onSelect()
     }}
   >
@@ -202,7 +215,6 @@ function NurseryObject({ item, layout, onChange, onSave, onLayer, onReset, onSel
 const colors = ['#e7a5a2', '#b9a2d4', '#91b5a2', '#e7bf79', '#9cbccc', '#d2a582']
 const tabs: { id: Tab; label: string; icon: 'sparkle' | 'dress' | 'hat' | 'heart' | 'flower' }[] = [
   { id: 'all', label: 'Everything', icon: 'sparkle' },
-  { id: 'outfit', label: 'Outfits', icon: 'dress' },
   { id: 'accessory', label: 'Accessories', icon: 'hat' },
   { id: 'toy', label: 'Toys', icon: 'heart' },
   { id: 'furniture', label: 'Furniture', icon: 'heart' },
@@ -262,14 +274,19 @@ function App() {
   const [opening, setOpening] = useState(false)
   const [showTreats, setShowTreats] = useState(false)
   const [feedingEmoji, setFeedingEmoji] = useState<string | null>(null)
+  const [feedingStage, setFeedingStage] = useState<FeedingStage | null>(null)
   const [affectionMessage, setAffectionMessage] = useState('')
   const [interactingObject, setInteractingObject] = useState<string | null>(null)
+  const [activeInteraction, setActiveInteraction] = useState<InteractionKind | null>(null)
+  const [interactionDirection, setInteractionDirection] = useState<'left' | 'right'>('right')
   const [nurseryVisible, setNurseryVisible] = useState(true)
   const selectedRef = useRef(selected)
   const openingChestRef = useRef(false)
   const creatureActionTimeout = useRef<number | undefined>(undefined)
   const idleBehaviorTimeout = useRef<number | undefined>(undefined)
   const objectActionTimeout = useRef<number | undefined>(undefined)
+  const interactionVersion = useRef(0)
+  const interactionTimeouts = useRef<number[]>([])
   const pendingFeedRequests = useRef(new Map<string, string>())
   const roomCreatureRef = useRef<HTMLButtonElement>(null)
   const roomRef = useRef<HTMLDivElement>(null)
@@ -378,6 +395,7 @@ function App() {
     return () => preference.removeEventListener?.('change', update)
   }, [])
   useEffect(() => {
+    cancelInteraction()
     const start = { x: 50, y: 82 }
     creaturePositionRef.current = start
     setCreaturePosition(start)
@@ -427,6 +445,7 @@ function App() {
     finally { setBusy(false) }
   }
   const animateCreature = useCallback((action: CreatureAction, duration = 1100) => {
+    cancelInteraction()
     if (creatureActionTimeout.current !== undefined) window.clearTimeout(creatureActionTimeout.current)
     setCreatureAction(action)
     if (creatureTravelRef.current) {
@@ -463,10 +482,34 @@ function App() {
       creatureActionTimeout.current = window.setTimeout(() => setCreatureAction('idle'), 2600)
     }
   }
+  const cancelInteraction = () => {
+    interactionVersion.current++
+    interactionTimeouts.current.forEach(timeout => window.clearTimeout(timeout))
+    interactionTimeouts.current = []
+    if (creatureActionTimeout.current !== undefined) window.clearTimeout(creatureActionTimeout.current)
+    if (objectActionTimeout.current !== undefined) window.clearTimeout(objectActionTimeout.current)
+    const position = currentCreaturePosition()
+    creaturePositionRef.current = position
+    setCreaturePosition(position)
+    updateCreatureTravel(null)
+    setCreatureAction('idle')
+    setInteractingObject(null)
+    setActiveInteraction(null)
+    setFeedingEmoji(null)
+    setFeedingStage(null)
+  }
+  const scheduleInteraction = (version: number, callback: () => void, delay: number) => {
+    const timeout = window.setTimeout(() => {
+      interactionTimeouts.current = interactionTimeouts.current.filter(timer => timer !== timeout)
+      if (interactionVersion.current === version) callback()
+    }, delay)
+    interactionTimeouts.current.push(timeout)
+  }
   useEffect(() => () => {
     if (creatureActionTimeout.current !== undefined) window.clearTimeout(creatureActionTimeout.current)
     if (idleBehaviorTimeout.current !== undefined) window.clearTimeout(idleBehaviorTimeout.current)
     if (objectActionTimeout.current !== undefined) window.clearTimeout(objectActionTimeout.current)
+    interactionTimeouts.current.forEach(timeout => window.clearTimeout(timeout))
   }, [])
   useEffect(() => {
     if (!profile || decorating || reducedMotion || busy || !nurseryVisible) return
@@ -517,6 +560,7 @@ function App() {
     }
     const target = event.target as HTMLElement
     if (target.closest('.nursery-object, .room-creature') || !target.closest('.room-floor, .rug')) return
+    cancelInteraction()
     const bounds = event.currentTarget.getBoundingClientRect()
     moveCreature({
       x: clamp((event.clientX - bounds.left) / Math.max(bounds.width, 1) * 100, 14, 86),
@@ -542,9 +586,9 @@ function App() {
     finally { openingChestRef.current = false; setOpening(false); setBusy(false) }
   }
   const items = profile ? details?.items ?? [] : []
-  const visible = items.filter(item => item.owned && (tab === 'all' || item.category === tab))
+  const visible = items.filter(item => item.owned && item.category !== 'outfit' && (tab === 'all' || item.category === tab))
   const placed = items.filter(item => item.owned && item.placed && (item.category === 'toy' || item.category === 'furniture' || item.category === 'decoration'))
-  const equipped = items.filter(item => item.owned && item.equipped && (item.category === 'outfit' || item.category === 'accessory'))
+  const equipped = items.filter(item => item.owned && item.equipped && item.category === 'accessory')
   const placedObjects = placed.map(item => {
     const key = objectKey(profile?.id ?? '', item.id)
     const index = items.findIndex(candidate => candidate.id === item.id)
@@ -552,26 +596,61 @@ function App() {
   })
   placedObjectsRef.current = placedObjects
   const interactWithObject = (item: Item, layout: Layout) => {
+    const kind = interactionFor(item)
+    if (!kind || !profile) return
+    cancelInteraction()
+    const version = interactionVersion.current
     const target = approachPoint(layout)
-    const name = item.name.toLowerCase()
-    const reaction: CreatureAction = item.category === 'furniture'
-      ? (/bed|sofa|couch|hammock/.test(name) ? 'sleeping' : 'sitting')
-      : item.category === 'toy' ? 'excited' : 'curious'
-    if (objectActionTimeout.current !== undefined) window.clearTimeout(objectActionTimeout.current)
-    setInteractingObject(null)
+    const origin = currentCreaturePosition()
+    setActiveInteraction(kind)
+    setInteractionDirection(origin.x >= layout.x ? 'right' : 'left')
     const travelTime = reducedMotion ? 0 : clamp(Math.round(distance(currentCreaturePosition(), target) * 22), 650, 1900)
-    const key = objectKey(profile?.id ?? '', item.id)
-    objectActionTimeout.current = window.setTimeout(() => {
+    const key = objectKey(profile.id, item.id)
+    moveCreature(target, kind === 'ball' || kind === 'plush' ? 'hopping' : 'walking')
+    scheduleInteraction(version, () => {
       setInteractingObject(key)
-      objectActionTimeout.current = window.setTimeout(() => setInteractingObject(null), 1800)
+      setCreatureAction(kind === 'painting' ? 'admiring' : kind === 'ball' ? 'playing' : kind === 'bed' ? 'sleeping' : 'hugging')
+      if (kind === 'ball') {
+        scheduleInteraction(version, () => {
+          const direction = origin.x >= layout.x ? 1 : -1
+          const roomWidth = roomRef.current?.getBoundingClientRect().width ?? 0
+          const follow = {
+            x: clamp(layout.x + direction * (roomWidth > 0 ? 42 / roomWidth * 100 : 8), horizontalBounds().min, horizontalBounds().max),
+            y: target.y,
+          }
+          const followDuration = reducedMotion ? 0 : clamp(Math.round(distance(currentCreaturePosition(), follow) * 16), 650, 1900)
+          moveCreature(follow, 'running', 'celebrating')
+          scheduleInteraction(version, () => {
+            setInteractingObject(null)
+            setActiveInteraction(null)
+          }, followDuration + 900)
+        }, 950)
+      } else {
+        const restDuration = kind === 'bed' ? 3600 : kind === 'plush' ? 1850 : 1500
+        scheduleInteraction(version, () => {
+          if (kind === 'bed') {
+            setCreatureAction('wake')
+            scheduleInteraction(version, () => {
+              setCreatureAction('idle')
+              setInteractingObject(null)
+              setActiveInteraction(null)
+            }, 900)
+          } else {
+            setCreatureAction('happy')
+            scheduleInteraction(version, () => {
+              setCreatureAction('idle')
+              setInteractingObject(null)
+              setActiveInteraction(null)
+            }, 850)
+          }
+        }, restDuration)
+      }
     }, travelTime)
-    moveCreature(target, item.category === 'toy' ? 'hopping' : 'walking', reaction)
   }
   const refreshTreats = async (id: string | number) => {
     const data = await request<TreatDetails>(`profiles/${encodeURIComponent(id)}/treats`)
     if (selectedRef.current === id) setTreatDetails(data)
   }
-  const wait = (milliseconds: number) => new Promise(resolve => window.setTimeout(resolve, milliseconds))
   const claimDailyTreats = async () => {
     if (!profile || busy || treatDetails?.daily.claimed) return
     setBusy(true)
@@ -607,13 +686,7 @@ function App() {
     requestId ??= window.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`
     pendingFeedRequests.current.set(requestKey, requestId)
     try { window.sessionStorage.setItem(storageKey, requestId) } catch { /* The in-memory key still protects this session. */ }
-    if (creatureActionTimeout.current !== undefined) window.clearTimeout(creatureActionTimeout.current)
-    if (objectActionTimeout.current !== undefined) window.clearTimeout(objectActionTimeout.current)
-    setInteractingObject(null)
-    const position = currentCreaturePosition()
-    creaturePositionRef.current = position
-    setCreaturePosition(position)
-    updateCreatureTravel(null)
+    cancelInteraction()
     setBusy(true)
     setError('')
     setAffectionMessage('')
@@ -634,23 +707,30 @@ function App() {
       try { await refreshTreats(profileId) }
       catch { setError('The treat was enjoyed, but we could not refresh the inventory. Please try again.') }
       if (result.fed) {
+        cancelInteraction()
+        const version = interactionVersion.current
         setCreatureAction('excited')
-        await wait(350)
-        setCreatureAction('sniffing')
+        setFeedingStage('look')
         setFeedingEmoji(treat.emoji)
-        await wait(650)
-        setCreatureAction('eating')
-        await wait(750)
-        setFeedingEmoji(null)
-        setCreatureAction('chewing')
-        await wait(700)
-        setCreatureAction(result.favorite ? 'celebrating' : 'happy')
-        setAffectionMessage(`${result.favorite ? 'Favorite treat!' : 'Yum!'}  +${result.favorite ? 8 : 5} affection`)
-        await wait(1400)
-        setCreatureAction('idle')
+        scheduleInteraction(version, () => setCreatureAction('sniffing'), 350)
+        scheduleInteraction(version, () => {
+          setCreatureAction('eating')
+          setFeedingStage('travel')
+        }, 850)
+        scheduleInteraction(version, () => {
+          setFeedingEmoji(null)
+          setFeedingStage(null)
+          setCreatureAction('chewing')
+        }, 1550)
+        scheduleInteraction(version, () => setCreatureAction('swallowing'), 2300)
+        scheduleInteraction(version, () => {
+          setCreatureAction(result.favorite ? 'celebrating' : 'happy')
+          setAffectionMessage(`${result.favorite ? 'Favorite treat!' : 'Yum!'}  +${result.favorite ? 8 : 5} affection`)
+        }, 2700)
+        scheduleInteraction(version, () => setCreatureAction('idle'), 4100)
       }
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not feed this treat.') }
-    finally { setFeedingEmoji(null); setBusy(false) }
+    finally { setBusy(false) }
   }
   const persistLayout = (item: Item, layout: Layout) => {
     if (profile) void mutate(`profiles/${encodeURIComponent(profile.id)}/items/${encodeURIComponent(item.id)}/layout`, layout, 'PUT')
@@ -698,7 +778,7 @@ function App() {
               <div className="room-sun"><DecorIcon kind="sun" /></div><div className="wall-frame"><DecorIcon kind="flower" /></div><div className="wall-stars"><DecorIcon kind="sparkle" /><DecorIcon kind="sparkle" /></div><div className="bunting" aria-hidden="true" />
               <div className="window"><div className="window-sky">☁ <span>☀</span></div><div className="window-cross" /></div>
               <div className="room-floor" /><div className="rug" />
-              <button ref={roomCreatureRef} type="button" className={`room-creature creature-${creatureAction} creature-facing-${creatureFacing}`} style={{
+              <button ref={roomCreatureRef} type="button" className={`room-creature creature-${creatureAction} creature-facing-${creatureFacing} ${interactingObject && activeInteraction === 'bed' ? 'creature-in-bed' : ''}`} style={{
                 left: `${creaturePosition.x}%`, top: `${creaturePosition.y}%`,
                 '--travel-from-x': `${creatureTravel?.fromX ?? creaturePosition.x}%`,
                 '--travel-from-y': `${creatureTravel?.fromY ?? creaturePosition.y}%`,
@@ -706,9 +786,8 @@ function App() {
                 '--travel-to-y': `${creatureTravel?.y ?? creaturePosition.y}%`,
                 '--travel-duration': `${creatureTravel?.duration ?? 0}ms`,
               } as CSSProperties} disabled={busy} aria-label={`Make ${profile.name} happy`} onClick={() => { if (!decorating && !busy) animateCreature(creatureAction === 'sleeping' ? 'wake' : 'happy') }}>
-                <span className="creature-body"><Creature profile={profile} action={creatureAction} />{equipped.map(item => <WearableArt key={item.id} item={item} species={profile.species} wearer={profile.name} />)}</span>
+                <span className="creature-body"><Creature profile={profile} action={creatureAction} />{equipped.map(item => <WearableArt key={item.id} item={item} species={profile.species} wearer={profile.name} />)}{feedingEmoji && <span className="feeding-treat" data-stage={feedingStage} aria-label="Treat moving into the creature’s mouth">{feedingEmoji}</span>}</span>
               </button>
-              {feedingEmoji && <span className="feeding-treat" aria-label="Treat moving to the creature">{feedingEmoji}</span>}
               {placedObjects.map(({ item, layout }) => <NurseryObject
                 key={item.id}
                 item={item}
@@ -721,6 +800,9 @@ function App() {
                 onLayer={direction => changeLayer(item, layout, direction)}
                 onReset={() => resetLayout(item)}
                 interacting={interactingObject === objectKey(profile.id, item.id)}
+                interactionKind={interactingObject === objectKey(profile.id, item.id) ? activeInteraction : null}
+                interactionDirection={interactionDirection}
+                canInteract={interactionFor(item) !== null}
                 onInteract={() => { if (!busy && !decorating) interactWithObject(item, layout) }}
               />)}
               <div className="room-label"><span>♥</span> {affectionMessage || `${profile.name} is happy you’re here!`}</div>

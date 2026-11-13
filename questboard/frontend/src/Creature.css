@@ -64,3 +64,31 @@
 @keyframes hippo-munch{to{transform:translateY(2px) scaleY(.91)}}
 @keyframes hippo-flare{50%{transform:scale(1.3,1.15)}}
 @keyframes creature-stretch{40%{transform:translateY(-8px) scaleY(1.05)}to{transform:translateY(1px) scaleY(.96)}}
+.creature-head{transform-box:fill-box;transform-origin:50% 70%}
+.creature-muzzle,.creature-mouth,.creature-eyes,.creature-nose,.creature-nostril,.creature-arms{transform-box:fill-box;transform-origin:center}
+.room-creature.creature-admiring .creature-head{transform:rotate(-6deg)}
+.room-creature.creature-admiring .creature-eyes{transform:translateY(-4px)}
+.room-creature.creature-hugging .creature-arms{animation:creature-hug .5s ease-in-out 4 alternate}
+.room-creature.creature-hugging .creature-body{animation:creature-sway .7s ease-in-out 3 alternate}
+.room-creature.creature-playing .creature-body{animation:creature-playful .35s ease-in-out 3}
+.room-creature.creature-swallowing .creature-mouth{animation:creature-swallow .35s ease-in-out 2}
+.room-creature.creature-eating .creature-species-bunny .creature-arms{animation:creature-reach .3s ease-in-out 2 alternate}
+.room-creature.creature-sniffing .creature-eyes{transform:translateX(4px)}
+.room-creature.creature-in-bed.creature-sleeping .creature-body{animation:creature-sleep-in-bed 2.8s ease-in-out infinite}
+.creature-species-elephant[data-action=walking] .creature-trunk{animation:trunk-walk .4s ease-in-out infinite alternate}
+.creature-species-elephant[data-action=excited] .creature-trunk,.creature-species-elephant[data-action=celebrating] .creature-trunk{animation:trunk-excited .35s ease-in-out 4}
+.creature-species-elephant[data-action=playing] .creature-trunk{animation:trunk-play .45s ease-in-out 3}
+.creature-species-elephant[data-action=eating] .creature-trunk{animation:trunk-feed .48s ease-in-out 2 alternate}
+.creature-species-elephant[data-action=chewing] .creature-trunk{animation:trunk-chew .35s ease-in-out 3}
+.creature-species-hippo[data-action=eating] .creature-muzzle,.creature-species-hippo[data-action=chewing] .creature-muzzle{transform-origin:50% 75%}
+@keyframes creature-hug{to{transform:translateY(-9px) rotate(14deg)}}
+@keyframes creature-sway{to{transform:rotate(3deg)}}
+@keyframes creature-playful{50%{transform:translateY(-8px) rotate(-4deg)}}
+@keyframes creature-swallow{50%{transform:scaleY(.75)}}
+@keyframes creature-reach{to{transform:translateY(-6px) scale(1.08)}}
+@keyframes trunk-walk{to{transform:rotate(8deg) translateY(3px)}}
+@keyframes trunk-excited{50%{transform:rotate(-16deg) translateY(-5px)}}
+@keyframes trunk-play{50%{transform:rotate(18deg) translateY(-3px)}}
+@keyframes trunk-feed{to{transform:rotate(-12deg) translateY(5px)}}
+@keyframes trunk-chew{50%{transform:translateY(3px) rotate(4deg)}}
+@keyframes creature-sleep-in-bed{0%,100%{transform:translateY(7px) scale(.96,.84) rotate(-4deg)}50%{transform:translateY(5px) scale(.97,.85) rotate(-4deg)}}
