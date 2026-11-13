@@ -41,7 +41,7 @@ const compactInteractionSlots: Record<InteractionKind, Point> = {
   ball: { x: 14, y: 84 },
   plush: { x: 86, y: 84 },
   painting: { x: 14, y: 57 },
-  bed: { x: 80, y: 70 },
+  bed: { x: 80, y: 60 },
 }
 const defaultLayout = (index: number, item?: Item, compact = false): Layout => {
   const furniture = item?.category === 'furniture'
