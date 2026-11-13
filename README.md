@@ -55,6 +55,19 @@ results; no Home Assistant instance was used.
 | Autonomous object interaction | ![Autonomous ball play](screenshots/questboard-040-autonomous.png) |
 | iPhone-sized nursery layout (390px viewport) | ![Questboard nursery on a phone-sized viewport](screenshots/questboard-040-iphone-nursery.png) |
 
+### Visual acceptance follow-up
+
+Updated screenshots from the rendered app after the visual review corrections.
+The phone capture uses a 390px viewport with disposable data and no saved layout
+rows; compact positions are presentation defaults and are not written to the
+profile. Existing saved layouts continue to take precedence.
+
+| Review item | Updated rendered evidence |
+|---|---|
+| Remy tucked into the bed with a pillow and visible quilt | ![Remy tucked under the quilt](screenshots/questboard-041-bed-sleeping.png) |
+| Teddy visibly held between Remy’s wrapping arms | ![Remy hugging the teddy](screenshots/questboard-041-plush-hug.png) |
+| Separated default objects and character on an iPhone-sized screen | ![Nursery layout at 390px](screenshots/questboard-041-iphone-layout.png) |
+
 ## Play
 
 Choose a profile, name and customize its creature, then use the simulated reward
