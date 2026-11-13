@@ -331,8 +331,12 @@ describe('Questboard frontend', () => {
     await waitFor(() => expect(creature?.classList.contains('creature-walking')).toBe(true))
     await waitFor(() => expect(document.querySelector('.room-creature .creature')?.getAttribute('data-action')).toBe('sleeping'), { timeout: 2000 })
     expect(creature?.classList.contains('creature-in-bed')).toBe(true)
-    expect(document.querySelector('.room-creature .creature-bed-pillow')).not.toBeNull()
-    expect(document.querySelector('.room-creature .creature-bedding')).not.toBeNull()
+    const artwork = document.querySelector('.room-creature .creature')!
+    expect(artwork.getAttribute('data-pose')).toBe('reclined')
+    expect(artwork.querySelector('.creature-bed-head')).not.toBeNull()
+    expect(artwork.querySelector('.creature-bed-body')).not.toBeNull()
+    expect(artwork.querySelector('.creature-bed-pillow')).not.toBeNull()
+    expect(artwork.querySelector('.creature-bedding')?.parentElement).toBe(artwork)
     expect(bed.getAttribute('style')).toContain('width: 120px')
     await waitFor(() => expect(bed.classList.contains('object-interacting-furniture')).toBe(true), { timeout: 2000 })
   })
@@ -409,7 +413,12 @@ describe('Questboard frontend', () => {
     await waitFor(() => expect(plush.classList.contains('object-interacting-plush')).toBe(true), { timeout: 2500 })
     await waitFor(() => expect(creature.getAttribute('data-action')).toBe('hugging'))
     expect(creature.getAttribute('data-action')).toBe('hugging')
-    await waitFor(() => expect(creature.querySelector('.creature-hugged-toy')?.textContent).toBe('🧸'), { timeout: 4000 })
+    const huggedToy = await waitFor(() => {
+      const toy = creature.querySelector('.creature-hugged-toy')
+      expect(toy?.querySelectorAll('circle, ellipse').length).toBeGreaterThan(8)
+      return toy
+    }, { timeout: 4000 })
+    expect(huggedToy?.getAttribute('aria-label')).toBe('Stuffed animal being hugged')
     expect(creature.querySelectorAll('.creature-hug-arm')).toHaveLength(2)
     expect(plush.classList.contains('object-picked-up')).toBe(true)
   }, 12000)
