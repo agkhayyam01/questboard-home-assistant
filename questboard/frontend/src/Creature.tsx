@@ -4,10 +4,12 @@ type CreatureAction =
   | 'sleeping' | 'curious' | 'confused' | 'yawning' | 'excited' | 'wake' | 'waving'
   | 'celebrating' | 'sniffing' | 'eating' | 'chewing' | 'swallowing' | 'admiring' | 'playing' | 'hugging'
 
-export default function Creature({ profile, small = false, action = 'idle' }: {
+export default function Creature({ profile, small = false, action = 'idle', inBed = false, huggingEmoji }: {
   profile: Profile
   small?: boolean
   action?: CreatureAction
+  inBed?: boolean
+  huggingEmoji?: string | null
 }) {
   const species = profile.species.toLowerCase()
   const elephant = species.includes('elephant')
@@ -27,6 +29,10 @@ export default function Creature({ profile, small = false, action = 'idle' }: {
     aria-label={`${profile.name}, the ${profile.species}`}
   >
     <ellipse cx="110" cy="216" rx={hippo ? 72 : 68} ry="8" fill="#604c55" opacity=".14" />
+    {inBed && <g className="creature-bed-pillow">
+      <ellipse cx="110" cy="94" rx="43" ry="25" fill="#fff5eb" stroke="#d7c0b4" strokeWidth="3" />
+      <path d="M75 94q35-16 70 0" fill="none" stroke="#ead7c8" strokeWidth="3" strokeLinecap="round" />
+    </g>}
     {bunny && <g className="creature-ears">
       <path d="M75 91C52 66 54 7 76 8c24-1 26 58 17 83" fill={color} stroke={outline} strokeWidth="3" />
       <path d="M72 71C63 50 66 18 76 17c12 1 17 35 12 57" fill="#eaaeb1" />
@@ -65,7 +71,15 @@ export default function Creature({ profile, small = false, action = 'idle' }: {
       <ellipse cx="110" cy="169" rx="61" ry="43" fill={color} stroke={outline} strokeWidth="3" />
       <ellipse cx="110" cy="177" rx="37" ry="26" fill="#fff1e9" opacity=".43" />
     </>}
-    <g className="creature-arms"><path d="M75 164q-13-8-19 2m89-2q13-8 19 2" fill="none" stroke={outline} strokeWidth={hippo ? 11 : 9} strokeLinecap="round" /></g>
+    {action === 'hugging' && huggingEmoji && <text className="creature-hugged-toy" x="110" y="185" textAnchor="middle" fontSize="38" aria-hidden="true">{huggingEmoji}</text>}
+    <g className="creature-arms">
+      {action === 'hugging'
+        ? <>
+          <path className="creature-hug-arm" d="M75 160C61 174 72 194 92 191l16-13" fill="none" stroke={outline} strokeWidth={hippo ? 11 : 9} strokeLinecap="round" />
+          <path className="creature-hug-arm" d="M145 160c14 14 3 34-17 31l-16-13" fill="none" stroke={outline} strokeWidth={hippo ? 11 : 9} strokeLinecap="round" />
+        </>
+        : <path d="M75 164q-13-8-19 2m89-2q13-8 19 2" fill="none" stroke={outline} strokeWidth={hippo ? 11 : 9} strokeLinecap="round" />}
+    </g>
     <g className="creature-head">
     <ellipse cx="110" cy="105" rx={elephant ? 65 : 67} ry="62" fill={color} stroke={outline} strokeWidth="3" />
     {gigi && <g className="creature-bow" stroke="#985e71" strokeWidth="2.5" strokeLinejoin="round">
@@ -115,6 +129,12 @@ export default function Creature({ profile, small = false, action = 'idle' }: {
       <path d="M129 144q3-2 6 0" fill="none" stroke="#765f73" strokeWidth="2" strokeLinecap="round" />
     </g>}
     </g>
-    <path d="M90 184q20 13 40 0" fill="none" stroke="#fff" strokeOpacity=".55" strokeWidth="3" strokeLinecap="round" />
+    {inBed && <g className="creature-bedding">
+      <path d="M48 177q62-27 124 0l8 32q-70 27-140 0Z" fill="#79b8d5" stroke="#527c99" strokeWidth="4" strokeLinejoin="round" />
+      <path d="M48 177q62-27 124 0l-2 10q-60-23-120 0Z" fill="#c6e7ed" />
+      <path d="M57 190q15-9 30-10v29q-15 2-27 9Zm47-14q15-2 29 1v31q-15-2-29-1Zm48 8 14 5 5 18-19-7Z" fill="#a5d2e0" stroke="#6b9db6" strokeWidth="2" />
+      <path d="M51 203q66 19 127-1" fill="none" stroke="#e7f3ed" strokeWidth="3" strokeLinecap="round" />
+    </g>}
+    {!inBed && <path d="M90 184q20 13 40 0" fill="none" stroke="#fff" strokeOpacity=".55" strokeWidth="3" strokeLinecap="round" />}
   </svg>
 }

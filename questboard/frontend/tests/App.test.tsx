@@ -145,6 +145,7 @@ afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
+  Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1024 })
   window.history.replaceState({}, '', '/')
 })
 
@@ -330,13 +331,16 @@ describe('Questboard frontend', () => {
     await waitFor(() => expect(creature?.classList.contains('creature-walking')).toBe(true))
     await waitFor(() => expect(document.querySelector('.room-creature .creature')?.getAttribute('data-action')).toBe('sleeping'), { timeout: 2000 })
     expect(creature?.classList.contains('creature-in-bed')).toBe(true)
-    expect(bed.getAttribute('style')).toContain('width: 96px')
+    expect(document.querySelector('.room-creature .creature-bed-pillow')).not.toBeNull()
+    expect(document.querySelector('.room-creature .creature-bedding')).not.toBeNull()
+    expect(bed.getAttribute('style')).toContain('width: 120px')
     await waitFor(() => expect(bed.classList.contains('object-interacting-furniture')).toBe(true), { timeout: 2000 })
   })
 
   it('keeps a saved bed layout instead of applying the larger default', async () => {
     const { data } = createApi()
     data[1].items.find(item => item.id === 'cozy-bed')!.layout = { x: 64, y: 76, size: 104, layer: 25 }
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 })
     const user = userEvent.setup()
     render(<App />)
     await screen.findByText('Clover’s little corner')
@@ -348,6 +352,29 @@ describe('Questboard frontend', () => {
     expect(bed.getAttribute('style')).toContain('top: 76%')
     expect(bed.getAttribute('style')).toContain('width: 104px')
     expect(bed.getAttribute('style')).toContain('z-index: 25')
+  })
+
+  it('spaces default objects on a phone-sized viewport without persisting compact positions', async () => {
+    const { data, fetchMock } = createApi()
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 })
+    data[0].items.find(item => item.id === 'ball')!.placed = true
+    data[0].items.find(item => item.id === 'painting')!.placed = true
+    data[0].items.find(item => item.id === 'plush')!.placed = true
+    render(<App />)
+    await screen.findByText('Clover’s little corner')
+
+    const ball = screen.getByRole('group', { name: 'Bouncy Ball in the nursery' })
+    const painting = screen.getByRole('group', { name: 'Flower Painting in the nursery' })
+    const plush = screen.getByRole('group', { name: 'Stuffed Bunny in the nursery' })
+    expect(ball.getAttribute('style')).toContain('left: 14%')
+    expect(ball.getAttribute('style')).toContain('top: 84%')
+    expect(ball.getAttribute('style')).toContain('width: 32px')
+    expect(painting.getAttribute('style')).toContain('left: 14%')
+    expect(painting.getAttribute('style')).toContain('top: 57%')
+    expect(plush.getAttribute('style')).toContain('left: 86%')
+    expect(plush.getAttribute('style')).toContain('top: 84%')
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/layout'))).toBe(false)
+    expect(data[0].items.find(item => item.id === 'ball')?.layout).toBeUndefined()
   })
 
   it('coordinates painting, rolling-ball, and stuffed-animal interactions', async () => {
@@ -382,7 +409,8 @@ describe('Questboard frontend', () => {
     await waitFor(() => expect(plush.classList.contains('object-interacting-plush')).toBe(true), { timeout: 2500 })
     await waitFor(() => expect(creature.getAttribute('data-action')).toBe('hugging'))
     expect(creature.getAttribute('data-action')).toBe('hugging')
-    await waitFor(() => expect(document.querySelector('.room-creature .carried-plush')?.textContent).toBe('🧸'), { timeout: 4000 })
+    await waitFor(() => expect(creature.querySelector('.creature-hugged-toy')?.textContent).toBe('🧸'), { timeout: 4000 })
+    expect(creature.querySelectorAll('.creature-hug-arm')).toHaveLength(2)
     expect(plush.classList.contains('object-picked-up')).toBe(true)
   }, 12000)
 

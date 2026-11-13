@@ -81,7 +81,6 @@
 .creature-species-elephant[data-action=eating] .creature-trunk{animation:trunk-feed .48s ease-in-out 2 alternate}
 .creature-species-elephant[data-action=chewing] .creature-trunk{animation:trunk-chew .35s ease-in-out 3}
 .creature-species-hippo[data-action=eating] .creature-muzzle,.creature-species-hippo[data-action=chewing] .creature-muzzle{transform-origin:50% 75%}
-@keyframes creature-hug{to{transform:translateY(-9px) rotate(14deg)}}
 @keyframes creature-sway{to{transform:rotate(3deg)}}
 @keyframes creature-playful{50%{transform:translateY(-8px) rotate(-4deg)}}
 @keyframes creature-swallow{50%{transform:scaleY(.75)}}
@@ -91,14 +90,15 @@
 @keyframes trunk-play{50%{transform:rotate(18deg) translateY(-3px)}}
 @keyframes trunk-feed{to{transform:rotate(-12deg) translateY(5px)}}
 @keyframes trunk-chew{50%{transform:translateY(3px) rotate(4deg)}}
-@keyframes creature-sleep-in-bed{0%,100%{transform:translateY(7px) scale(.96,.84) rotate(-4deg)}50%{transform:translateY(5px) scale(.97,.85) rotate(-4deg)}}
 .room-creature{width:100px}
 .room-creature.creature-bed-interaction{z-index:1001}
 .room-creature.creature-in-bed .creature-body{transform-origin:50% 50%}
-.room-creature.creature-in-bed.creature-sleeping .creature-body{animation:creature-sleep-in-bed 2.8s ease-in-out infinite}
 .room-creature.creature-petting .creature-head{animation:creature-pet .35s ease-in-out 3}
 .room-creature.creature-petting .creature-tail,.room-creature.creature-petting .creature-ears{animation:pet-follow-through .45s ease-in-out 3}
-@keyframes creature-sleep-in-bed{0%,100%{transform:rotate(90deg) scale(.78,.86) translateY(3px)}50%{transform:rotate(90deg) scale(.79,.88) translateY(1px)}}
+@keyframes creature-sleep-in-bed{0%,100%{transform:rotate(-90deg) scale(.92,.9) translateY(1px)}50%{transform:rotate(-90deg) scale(.93,.91) translateY(-1px)}}
 @keyframes creature-pet{50%{transform:rotate(-7deg) translateY(2px)}}
 @keyframes pet-follow-through{50%{transform:rotate(9deg) translateY(-2px)}}
+@keyframes creature-hug{50%{transform:translateY(-8px) rotate(12deg) scaleX(.94)}to{transform:translateY(-5px) rotate(20deg) scaleX(.9)}}
+.creature-bedding{filter:drop-shadow(0 2px 2px #527c9940)}
+.creature-hugged-toy{font-family:"Apple Color Emoji","Segoe UI Emoji",sans-serif;filter:drop-shadow(0 2px 1px #604d4740)}
 @media(max-width:520px){.room-creature{width:88px}}

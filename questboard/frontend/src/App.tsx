@@ -33,12 +33,26 @@ const defaultSlots: Point[] = [
   { x: 26, y: 60 }, { x: 14, y: 82 }, { x: 40, y: 87 }, { x: 80, y: 63 },
   { x: 50, y: 56 }, { x: 30, y: 70 }, { x: 70, y: 70 }, { x: 62, y: 86 },
 ]
-const defaultLayout = (index: number, item?: Item): Layout => {
+const compactSlots: Point[] = [
+  { x: 14, y: 84 }, { x: 86, y: 84 }, { x: 14, y: 57 }, { x: 86, y: 57 },
+  { x: 50, y: 60 }, { x: 50, y: 90 }, { x: 30, y: 70 }, { x: 70, y: 70 },
+]
+const compactInteractionSlots: Record<InteractionKind, Point> = {
+  ball: { x: 14, y: 84 },
+  plush: { x: 86, y: 84 },
+  painting: { x: 14, y: 57 },
+  bed: { x: 80, y: 70 },
+}
+const defaultLayout = (index: number, item?: Item, compact = false): Layout => {
   const furniture = item?.category === 'furniture'
   const bed = furniture && /bed|sofa|couch|hammock/.test(item.name.toLowerCase())
+  const interaction = compact && item ? interactionFor(item) : null
+  const position = bed
+    ? compact ? compactInteractionSlots.bed : { x: 80, y: 73 }
+    : interaction ? compactInteractionSlots[interaction] : (compact ? compactSlots : defaultSlots)[index % (compact ? compactSlots : defaultSlots).length]
   return {
-    ...(bed ? { x: 80, y: 73 } : defaultSlots[index % defaultSlots.length]),
-    size: bed ? 96 : furniture ? 56 : 40,
+    ...position,
+    size: bed ? compact ? 96 : 120 : furniture ? compact ? 48 : 56 : compact ? 32 : 40,
     layer: 10 + index,
   }
 }
@@ -270,6 +284,7 @@ function App() {
   const [decorating, setDecorating] = useState(false)
   const [selectedObject, setSelectedObject] = useState<string | null>(null)
   const [creaturePosition, setCreaturePosition] = useState<Point>({ x: 50, y: 82 })
+  const [compactViewport, setCompactViewport] = useState(() => window.innerWidth <= 520)
   const [creatureAction, setCreatureAction] = useState<CreatureAction>('idle')
   const [creatureFacing, setCreatureFacing] = useState<'left' | 'right'>('right')
   const [creatureTravel, setCreatureTravel] = useState<Travel | null>(null)
@@ -427,6 +442,7 @@ function App() {
   }, [profile?.id])
   useEffect(() => {
     const onResize = () => {
+      setCompactViewport(window.innerWidth <= 520)
       const current = currentCreaturePosition()
       const bounds = horizontalBounds()
       const position = { x: clamp(current.x, bounds.min, bounds.max), y: clamp(current.y, 74, 94) }
@@ -434,6 +450,7 @@ function App() {
       setCreaturePosition(position)
       updateCreatureTravel(null)
     }
+    onResize()
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
@@ -628,7 +645,8 @@ function App() {
   const placedObjects = placed.map(item => {
     const key = objectKey(profile?.id ?? '', item.id)
     const index = items.findIndex(candidate => candidate.id === item.id)
-    return { item, layout: layoutOverrides[key] ?? item.layout ?? defaultLayout(index, item) }
+    const savedLayout = layoutOverrides[key] ?? item.layout
+    return { item, layout: savedLayout ?? defaultLayout(index, item, compactViewport) }
   })
   placedObjectsRef.current = placedObjects
   function interactWithObject(item: Item, layout: Layout) {
@@ -871,7 +889,7 @@ function App() {
                 '--travel-to-y': `${creatureTravel?.y ?? creaturePosition.y}%`,
                 '--travel-duration': `${creatureTravel?.duration ?? 0}ms`,
               } as CSSProperties} disabled={busy} aria-label={`Make ${profile.name} happy`} onClick={petCreature}>
-                <span className="creature-body"><Creature profile={profile} action={creatureAction} />{equipped.map(item => <WearableArt key={item.id} item={item} species={profile.species} wearer={profile.name} />)}{heldObject && heldObject.key === interactingObject && <span className="carried-plush" aria-hidden="true">{heldObject.emoji}</span>}{feedingEmoji && <span className="feeding-treat" data-stage={feedingStage} aria-label="Treat moving into the creature’s mouth">{feedingEmoji}</span>}</span>
+                <span className="creature-body"><Creature profile={profile} action={creatureAction} inBed={activeInteraction === 'bed' && interactionPhase === 'interaction' && creatureAction === 'sleeping'} huggingEmoji={heldObject?.key === interactingObject ? heldObject.emoji : null} />{equipped.map(item => <WearableArt key={item.id} item={item} species={profile.species} wearer={profile.name} />)}{feedingEmoji && <span className="feeding-treat" data-stage={feedingStage} aria-label="Treat moving into the creature’s mouth">{feedingEmoji}</span>}</span>
               </button>
               {placedObjects.map(({ item, layout }) => <NurseryObject
                 key={item.id}
