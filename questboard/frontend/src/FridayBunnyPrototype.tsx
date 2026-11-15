@@ -28,10 +28,21 @@ type PointerStroke = {
   last: { x: number; y: number }
 }
 
+type RequiredAsset = {
+  path: string
+  purpose: string
+}
+
 const STORAGE_KEY = 'questboard.friday_bunny_prototype.v1'
 const BUNNY_MASTER_ASSET = 'assets/prototype/friday/IMG_1359.jpeg'
 const BUNNY_STYLE_REFERENCE = 'assets/prototype/friday/01_original_three_animal_reference.jpg'
+const BUNNY_HOPPING_PREVIEW = 'assets/prototype/friday/Questboard_G2_Bunny_Hopping_Preview.gif'
 const ACCEPTANCE_JOURNAL_TITLE = 'Bunny and Wildflower Garden'
+const REQUIRED_ASSETS: RequiredAsset[] = [
+  { path: BUNNY_MASTER_ASSET, purpose: 'Approved Friday Bunny master artwork' },
+  { path: BUNNY_STYLE_REFERENCE, purpose: 'Original three-animal style reference' },
+  { path: BUNNY_HOPPING_PREVIEW, purpose: 'Exploratory Bunny hopping preview frames' },
+]
 const defaultState: PrototypeState = {
   started: false,
   strokesDone: 0,
@@ -61,6 +72,10 @@ const safeRelease = (element: Element, pointerId: number) => {
     if (target.hasPointerCapture?.(pointerId)) target.releasePointerCapture?.(pointerId)
   } catch { /* no-op */ }
 }
+const isImageResponse = (response: Response) => {
+  const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
+  return response.ok && contentType.startsWith('image/')
+}
 
 function loadState(): PrototypeState {
   try {
@@ -82,9 +97,11 @@ function loadState(): PrototypeState {
   }
 }
 
+const freshAssetChecks = () => Object.fromEntries(REQUIRED_ASSETS.map(asset => [asset.path, null])) as Record<string, boolean | null>
+
 export default function FridayBunnyPrototype() {
   const [state, setState] = useState<PrototypeState>(() => loadState())
-  const [assetStatus, setAssetStatus] = useState<'checking' | 'available' | 'missing'>('checking')
+  const [assetChecks, setAssetChecks] = useState<Record<string, boolean | null>>(() => freshAssetChecks())
   const [statusMessage, setStatusMessage] = useState('Friday is unlocked for prototype testing. Start when ready.')
   const [chestHolding, setChestHolding] = useState(false)
   const [journeyPhase, setJourneyPhase] = useState<JourneyPhase>('idle')
@@ -100,17 +117,19 @@ export default function FridayBunnyPrototype() {
 
   useEffect(() => {
     let active = true
-    const checkAsset = async () => {
-      try {
-        const response = await fetch(BUNNY_MASTER_ASSET, { method: 'HEAD' })
-        if (!active) return
-        setAssetStatus(response.ok ? 'available' : 'missing')
-      } catch {
-        if (!active) return
-        setAssetStatus('missing')
-      }
+    const checkAssets = async () => {
+      const checks = await Promise.all(REQUIRED_ASSETS.map(async asset => {
+        try {
+          const response = await fetch(asset.path, { method: 'HEAD' })
+          return [asset.path, isImageResponse(response)] as const
+        } catch {
+          return [asset.path, false] as const
+        }
+      }))
+      if (!active) return
+      setAssetChecks(Object.fromEntries(checks))
     }
-    void checkAsset()
+    void checkAssets()
     return () => {
       active = false
     }
@@ -122,6 +141,13 @@ export default function FridayBunnyPrototype() {
     if (holdTimer.current !== null) window.clearTimeout(holdTimer.current)
   }, [])
 
+  const assetsChecking = REQUIRED_ASSETS.some(asset => assetChecks[asset.path] === null)
+  const missingAssets = REQUIRED_ASSETS.filter(asset => assetChecks[asset.path] === false)
+  const hasMaster = assetChecks[BUNNY_MASTER_ASSET] === true
+  const hasHoppingFrames = assetChecks[BUNNY_HOPPING_PREVIEW] === true
+  const canRenderBunny = hasMaster
+  const canRunJourney = hasMaster && hasHoppingFrames
+
   const lineworkReveal = state.strokesDone / guides.length
   const watercolorReveal = state.watercolorRevealed ? 1 : 0
   const detailReveal = state.detailRevealed ? 1 : 0
@@ -129,15 +155,18 @@ export default function FridayBunnyPrototype() {
   const companionQuiet = state.journalSaved
 
   const hint = useMemo(() => {
+    if (assetsChecking) return 'Checking required Bunny source assets.'
+    if (!canRenderBunny) return 'Approved Bunny source art is required before this prototype can render the character.'
     if (!state.started) return 'Tap begin to start the Friday chapter.'
     if (state.strokesDone < guides.length) return `Guide stroke ${state.strokesDone + 1} of ${guides.length}. Incomplete strokes can be retried.`
     if (!state.watercolorRevealed) return 'Tap once to reveal watercolor.'
     if (!state.detailRevealed) return 'Tap once more to reveal finishing details.'
     if (!state.awakened) return 'Hold Bunny\'s chest until the breath arrives. Releasing early lets you retry.'
+    if (!canRunJourney) return 'Exploratory hopping frames are required before the destination journey can run.'
     if (!state.journeyDone) return 'Tap the faint destination to begin one guided journey.'
     if (!state.journalSaved) return 'Save the journal page once Bunny reaches the wildflower garden.'
     return 'Quiet companionship resumed. Replay does not duplicate journal progress.'
-  }, [state])
+  }, [assetsChecking, canRenderBunny, canRunJourney, state])
 
   const updateState = (changes: Partial<PrototypeState>) => {
     setState(current => {
@@ -162,7 +191,7 @@ export default function FridayBunnyPrototype() {
   }
 
   const beginStroke = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!state.started || state.strokesDone >= guides.length) return
+    if (!state.started || state.strokesDone >= guides.length || !canRenderBunny) return
     const guide = guides[state.strokesDone]
     const point = pointFromEvent(event)
     const startDistance = distance(point, guide.start)
@@ -210,13 +239,13 @@ export default function FridayBunnyPrototype() {
   }
 
   const revealWatercolor = () => {
-    if (!state.started || state.strokesDone < guides.length || state.watercolorRevealed) return
+    if (!state.started || state.strokesDone < guides.length || state.watercolorRevealed || !canRenderBunny) return
     updateState({ watercolorRevealed: true })
     setStatusMessage('Watercolor revealed. Tap again to add finishing details.')
   }
 
   const revealDetails = () => {
-    if (!state.watercolorRevealed || state.detailRevealed) return
+    if (!state.watercolorRevealed || state.detailRevealed || !canRenderBunny) return
     updateState({ detailRevealed: true })
     setStatusMessage('Finishing details revealed. Press and hold Bunny\'s chest for first breath.')
   }
@@ -229,7 +258,7 @@ export default function FridayBunnyPrototype() {
   }
 
   const holdChestStart = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (!state.detailRevealed || state.awakened) return
+    if (!state.detailRevealed || state.awakened || !canRenderBunny) return
     safeCapture(event.currentTarget, event.pointerId)
     clearHoldTimer()
     setChestHolding(true)
@@ -264,7 +293,7 @@ export default function FridayBunnyPrototype() {
   }
 
   const startJourney = () => {
-    if (!state.awakened || journeyInFlight) return
+    if (!state.awakened || journeyInFlight || !canRunJourney) return
     journeyTimers.current.forEach(timer => window.clearTimeout(timer))
     journeyTimers.current = []
     setJourneyInFlight(true)
@@ -295,7 +324,7 @@ export default function FridayBunnyPrototype() {
   }
 
   const replayJourney = () => {
-    if (!state.journeyDone || journeyInFlight) return
+    if (!state.journeyDone || journeyInFlight || !canRunJourney) return
     setStatusMessage('Replay started. Existing progress remains saved.')
     startJourney()
   }
@@ -307,9 +336,12 @@ export default function FridayBunnyPrototype() {
       <p className="prototype-subtitle">Isolated browser-only scene. No profile, save, Skylight, or Home Assistant data is used.</p>
       <p className="prototype-status" role="status">{hint}</p>
       <p className="prototype-message" role="status">{statusMessage}</p>
-      {assetStatus === 'missing' && <p className="prototype-blocker" role="alert">
-        Source blocker: `{BUNNY_MASTER_ASSET}` is missing in this repository. Add the approved Bunny master and style reference (`{BUNNY_STYLE_REFERENCE}`) via authorized handoff.
-      </p>}
+      {!assetsChecking && missingAssets.length > 0 && <div className="prototype-blocker" role="alert">
+        <p>Source blocker: required approved assets are missing from this repository. Provide authorized handoff for:</p>
+        <ul>
+          {missingAssets.map(asset => <li key={asset.path}><code>{asset.path}</code> ({asset.purpose})</li>)}
+        </ul>
+      </div>}
     </header>
 
     <section className="prototype-scene" aria-label="Friday flow workspace">
@@ -328,14 +360,28 @@ export default function FridayBunnyPrototype() {
               />
             })}
           </div>
-          <div className="bunny-body" onPointerDown={beginStroke} onPointerMove={moveStroke} onPointerUp={finishStroke} onPointerCancel={finishStroke} role="application" aria-label="Guided stroke canvas">
-            <div className="linework" />
-            <div className="watercolor" />
-            <div className="detail-ink" />
+          <div className="bunny-figure" onPointerDown={beginStroke} onPointerMove={moveStroke} onPointerUp={finishStroke} onPointerCancel={finishStroke} role="application" aria-label="Guided stroke canvas">
+            {canRenderBunny
+              ? <>
+                <img src={BUNNY_MASTER_ASSET} alt="Approved Friday Bunny artwork" className="bunny-image bunny-linework" data-testid="bunny-master-linework" draggable={false} />
+                <img src={BUNNY_MASTER_ASSET} alt="" aria-hidden="true" className="bunny-image bunny-watercolor" data-testid="bunny-master-watercolor" draggable={false} />
+                <img src={BUNNY_MASTER_ASSET} alt="" aria-hidden="true" className="bunny-image bunny-details" data-testid="bunny-master-details" draggable={false} />
+              </>
+              : <p className="missing-artwork">Waiting for approved Bunny master artwork handoff.</p>}
+
+            {(canRunJourney && (journeyInFlight || state.journeyDone)) && <img
+              src={BUNNY_HOPPING_PREVIEW}
+              alt="Exploratory Bunny hopping preview"
+              className="hopping-preview"
+              data-testid="bunny-hopping-preview"
+              draggable={false}
+            />}
+
             <button
               type="button"
               className="chest-touch"
               aria-label="Hold Bunny chest"
+              disabled={!canRenderBunny || !state.detailRevealed || state.awakened}
               onPointerDown={holdChestStart}
               onPointerUp={holdChestEnd}
               onPointerCancel={holdChestEnd}
@@ -343,7 +389,13 @@ export default function FridayBunnyPrototype() {
             >
               Hold chest
             </button>
-            <button type="button" className="destination" onClick={startJourney} disabled={!state.awakened || journeyInFlight} aria-label="Follow the faint destination">
+            <button
+              type="button"
+              className="destination"
+              onClick={startJourney}
+              disabled={!state.awakened || journeyInFlight || !canRunJourney}
+              aria-label="Follow the faint destination"
+            >
               Faint destination
             </button>
             {state.journalSaved && <span className="journal-book" aria-label="Journal book icon" title="Journal saved">book</span>}
@@ -352,11 +404,11 @@ export default function FridayBunnyPrototype() {
       </div>
 
       <aside className="prototype-controls" aria-label="Friday controls">
-        <button type="button" onClick={beginChapter} disabled={state.started}>Begin Friday chapter</button>
-        <button type="button" onClick={revealWatercolor} disabled={!state.started || state.strokesDone < guides.length || state.watercolorRevealed}>Reveal watercolor</button>
-        <button type="button" onClick={revealDetails} disabled={!state.watercolorRevealed || state.detailRevealed}>Reveal finishing details</button>
+        <button type="button" onClick={beginChapter} disabled={state.started || !canRenderBunny}>Begin Friday chapter</button>
+        <button type="button" onClick={revealWatercolor} disabled={!state.started || state.strokesDone < guides.length || state.watercolorRevealed || !canRenderBunny}>Reveal watercolor</button>
+        <button type="button" onClick={revealDetails} disabled={!state.watercolorRevealed || state.detailRevealed || !canRenderBunny}>Reveal finishing details</button>
         <button type="button" onClick={saveJournal} disabled={!state.journeyDone}>Save {ACCEPTANCE_JOURNAL_TITLE} page</button>
-        <button type="button" onClick={replayJourney} disabled={!state.journeyDone || journeyInFlight}>Replay journey</button>
+        <button type="button" onClick={replayJourney} disabled={!state.journeyDone || journeyInFlight || !canRunJourney}>Replay journey</button>
         <p>Checkpoint resume: {state.journalSaved ? 'Journal saved' : `${state.strokesDone}/${guides.length} strokes complete`}</p>
         <p>Journal pages saved: {state.journalCount}</p>
       </aside>
