@@ -127,6 +127,39 @@ describe('Friday Bunny prototype', () => {
     expect(screen.getByText(/First breath complete/)).toBeTruthy()
   }, 10000)
 
+  it('supports touch pointer progression for stroke drawing and chest hold', async () => {
+    render(<FridayBunnyPrototype />)
+    await waitFor(() => expect(screen.getByTestId('bunny-master-linework')).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: 'Begin Friday chapter' }))
+
+    const canvas = screen.getByRole('group', { name: 'Guided stroke canvas' })
+    vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
+      x: 0, y: 0, left: 0, top: 0, right: 100, bottom: 100, width: 100, height: 100,
+      toJSON: () => ({}),
+    })
+
+    for (const stroke of strokePoints) {
+      fireEvent.pointerDown(canvas, { pointerId: 21, pointerType: 'touch', clientX: stroke.start.x, clientY: stroke.start.y })
+      fireEvent.pointerMove(canvas, { pointerId: 21, pointerType: 'touch', clientX: stroke.end.x, clientY: stroke.end.y })
+      fireEvent.pointerUp(canvas, { pointerId: 21, pointerType: 'touch', clientX: stroke.end.x, clientY: stroke.end.y })
+    }
+    expect(screen.getByText('Checkpoint resume: 4/4 strokes complete')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reveal watercolor' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reveal finishing details' }))
+
+    const chest = screen.getByRole('button', { name: 'Hold Bunny chest' })
+    fireEvent.pointerDown(chest, { pointerId: 31, pointerType: 'touch' })
+    await act(async () => { await new Promise(resolve => window.setTimeout(resolve, 450)) })
+    fireEvent.pointerUp(chest, { pointerId: 31, pointerType: 'touch' })
+    expect(screen.getByText(/Hold ended early/)).toBeTruthy()
+
+    fireEvent.pointerDown(chest, { pointerId: 32, pointerType: 'touch' })
+    await act(async () => { await new Promise(resolve => window.setTimeout(resolve, 1200)) })
+    fireEvent.pointerUp(chest, { pointerId: 32, pointerType: 'touch' })
+    expect(screen.getByText(/First breath complete/)).toBeTruthy()
+  }, 12000)
+
   it('resumes saved checkpoint after refresh', async () => {
     window.localStorage.setItem('questboard.friday_bunny_prototype.v1', JSON.stringify({
       started: true,

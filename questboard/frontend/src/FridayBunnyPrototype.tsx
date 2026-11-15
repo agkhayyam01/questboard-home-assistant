@@ -389,7 +389,17 @@ export default function FridayBunnyPrototype() {
 
     <section className="prototype-scene" aria-label="Friday flow workspace">
       <div className={`bunny-stage ${companionQuiet ? 'quiet' : ''}`}>
-        <div className={`bunny-canvas phase-${journeyPhase} ${chestActive ? 'chest-active' : ''}`} style={{ '--linework': `${lineworkReveal}`, '--water': `${watercolorReveal}`, '--details': `${detailReveal}`, '--journey-x': `${journeyOffset}px` } as CSSProperties}>
+        <div
+          className={`bunny-canvas phase-${journeyPhase} ${chestActive ? 'chest-active' : ''}`}
+          style={{ '--linework': `${lineworkReveal}`, '--water': `${watercolorReveal}`, '--details': `${detailReveal}`, '--journey-x': `${journeyOffset}px` } as CSSProperties}
+          onPointerDown={beginStroke}
+          onPointerMove={moveStroke}
+          onPointerUp={finishStroke}
+          onPointerCancel={finishStroke}
+          role="group"
+          aria-label="Guided stroke canvas"
+          aria-describedby="prototype-hint friday-gesture-help"
+        >
           <div className="bunny-guide" aria-hidden="true">
             {guides.map((guide, index) => {
               const dx = guide.end.x - guide.start.x
@@ -403,16 +413,7 @@ export default function FridayBunnyPrototype() {
               />
             })}
           </div>
-          <div
-            className="bunny-figure"
-            onPointerDown={beginStroke}
-            onPointerMove={moveStroke}
-            onPointerUp={finishStroke}
-            onPointerCancel={finishStroke}
-            role="group"
-            aria-label="Guided stroke canvas"
-            aria-describedby="prototype-hint friday-gesture-help"
-          >
+          <div className="bunny-figure">
             {canRenderBunny
               ? <>
                 <img src={bunnyMasterSrc} alt="Approved Friday Bunny artwork" className="bunny-image bunny-linework" data-testid="bunny-master-linework" draggable={false} />
