@@ -26,5 +26,17 @@ The prototype expects approved artwork handoff at:
 
 - `assets/prototype/friday/IMG_1359.jpeg`
 - `assets/prototype/friday/01_original_three_animal_reference.jpg`
+- `assets/prototype/friday/Questboard_G2_Bunny_Hopping_Preview.gif`
 
 If these files are missing, the prototype displays an in-app blocker message instead of introducing replacement art.
+
+For a genuine browser preview (desktop + device-reachable on your local network), run:
+
+```sh
+npm run dev -- --host 0.0.0.0 --port 4173
+```
+
+Then open either:
+
+- `http://localhost:4173/prototype/friday-bunny`
+- `http://<your-machine-lan-ip>:4173/prototype/friday-bunny`

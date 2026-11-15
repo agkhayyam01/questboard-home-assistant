@@ -2,6 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import FridayBunnyPrototype from '../src/FridayBunnyPrototype'
 
+const requiredAssets = [
+  'assets/prototype/friday/IMG_1359.jpeg',
+  'assets/prototype/friday/01_original_three_animal_reference.jpg',
+  'assets/prototype/friday/Questboard_G2_Bunny_Hopping_Preview.gif',
+]
+
 const strokePoints = [
   { start: { x: 18, y: 20 }, end: { x: 48, y: 12 } },
   { start: { x: 38, y: 24 }, end: { x: 74, y: 38 } },
@@ -9,8 +15,21 @@ const strokePoints = [
   { start: { x: 40, y: 72 }, end: { x: 52, y: 88 } },
 ]
 
+const mockAssetFetch = (missing: string[] = []) => {
+  vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
+    const path = String(input)
+    if (requiredAssets.includes(path)) {
+      return new Response('', {
+        status: missing.includes(path) ? 404 : 200,
+        headers: missing.includes(path) ? { 'Content-Type': 'text/html' } : { 'Content-Type': 'image/jpeg' },
+      })
+    }
+    return new Response('', { status: 404, headers: { 'Content-Type': 'text/html' } })
+  }))
+}
+
 beforeEach(() => {
-  vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 404 })))
+  mockAssetFetch()
   window.localStorage.clear()
 })
 
@@ -21,10 +40,23 @@ afterEach(() => {
 })
 
 describe('Friday Bunny prototype', () => {
+  it('reports precisely which required source files are missing', async () => {
+    mockAssetFetch([
+      'assets/prototype/friday/IMG_1359.jpeg',
+      'assets/prototype/friday/Questboard_G2_Bunny_Hopping_Preview.gif',
+    ])
+    render(<FridayBunnyPrototype />)
+    const blocker = await screen.findByRole('alert')
+
+    expect(blocker.textContent).toContain('assets/prototype/friday/IMG_1359.jpeg')
+    expect(blocker.textContent).toContain('assets/prototype/friday/Questboard_G2_Bunny_Hopping_Preview.gif')
+    expect((screen.getByRole('button', { name: 'Begin Friday chapter' }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
   it('runs the flow with retry-safe hold and idempotent journal save', async () => {
     render(<FridayBunnyPrototype />)
 
-    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('IMG_1359.jpeg'))
+    await waitFor(() => expect(screen.getByTestId('bunny-master-linework')).toBeTruthy())
     fireEvent.click(screen.getByRole('button', { name: 'Begin Friday chapter' }))
 
     const canvas = screen.getByRole('application', { name: 'Guided stroke canvas' })
@@ -57,6 +89,7 @@ describe('Friday Bunny prototype', () => {
     fireEvent.click(destination)
     expect((destination as HTMLButtonElement).disabled).toBe(true)
     await act(async () => { await new Promise(resolve => window.setTimeout(resolve, 2100)) })
+    expect(screen.getByTestId('bunny-hopping-preview')).toBeTruthy()
 
     const save = screen.getByRole('button', { name: 'Save Bunny and Wildflower Garden page' })
     fireEvent.click(save)
@@ -79,6 +112,7 @@ describe('Friday Bunny prototype', () => {
     }))
 
     render(<FridayBunnyPrototype />)
+    await waitFor(() => expect(screen.getByTestId('bunny-master-linework')).toBeTruthy())
     expect(screen.getByText('Checkpoint resume: Journal saved')).toBeTruthy()
     expect(screen.getByText('Journal pages saved: 1')).toBeTruthy()
     expect((screen.getByRole('button', { name: 'Begin Friday chapter' }) as HTMLButtonElement).disabled).toBe(true)

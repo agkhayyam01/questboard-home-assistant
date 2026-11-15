@@ -34,6 +34,11 @@
   border-radius: 0.6rem;
 }
 
+.prototype-blocker ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+}
+
 .prototype-scene {
   max-width: 64rem;
   margin: 0 auto;
@@ -94,49 +99,68 @@
   background: #91a974;
 }
 
-.bunny-body {
+.bunny-figure {
   position: relative;
-  width: 14.5rem;
-  height: 19.5rem;
-  margin: 2.2rem 0 0 2.2rem;
+  width: min(21rem, 74vw);
+  aspect-ratio: 3 / 4;
+  margin: 1.6rem 0 0 2.2rem;
   transform: translateX(var(--journey-x, 0));
   transition: transform 260ms ease;
 }
 
-.linework,
-.watercolor,
-.detail-ink {
+.bunny-image,
+.hopping-preview {
   position: absolute;
   inset: 0;
-  border-radius: 48% 55% 42% 52% / 42% 38% 64% 58%;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
-.linework {
+.bunny-linework {
   opacity: var(--linework, 0);
-  border: 2px solid #726462;
-  background:
-    radial-gradient(circle at 55% 30%, rgba(114, 100, 98, 0.6) 0 5px, transparent 6px),
-    radial-gradient(circle at 48% 37%, rgba(114, 100, 98, 0.45) 0 2px, transparent 3px),
-    linear-gradient(132deg, transparent 15%, rgba(114, 100, 98, 0.8) 17%, transparent 18%),
-    linear-gradient(115deg, transparent 48%, rgba(114, 100, 98, 0.65) 50%, transparent 52%);
-  filter: grayscale(100%);
+  filter: grayscale(1) contrast(1.18) brightness(1.02);
   transition: opacity 220ms ease;
 }
 
-.watercolor {
+.bunny-watercolor {
   opacity: var(--water, 0);
-  background:
-    radial-gradient(circle at 35% 34%, rgba(223, 168, 146, 0.52) 0 24%, transparent 42%),
-    radial-gradient(circle at 67% 66%, rgba(198, 141, 128, 0.44) 0 20%, transparent 40%),
-    radial-gradient(circle at 50% 56%, rgba(153, 118, 113, 0.19) 0 56%, transparent 78%);
+  filter: saturate(0.94);
   transition: opacity 240ms ease;
 }
 
-.detail-ink {
+.bunny-details {
   opacity: var(--details, 0);
-  border: 1px solid rgba(85, 59, 53, 0.7);
-  box-shadow: inset 0 0 0 2px rgba(243, 236, 225, 0.5);
+  filter: contrast(1.08) saturate(1.1);
   transition: opacity 240ms ease;
+}
+
+.missing-artwork {
+  margin: 0;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 0.8rem;
+  border-radius: 0.7rem;
+  background: rgba(255, 247, 235, 0.85);
+  border: 1px solid #d2c0af;
+}
+
+.hopping-preview {
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.phase-crouch .hopping-preview,
+.phase-spring .hopping-preview,
+.phase-float .hopping-preview,
+.phase-landing .hopping-preview,
+.phase-settle .hopping-preview,
+.bunny-stage.quiet .hopping-preview {
+  opacity: 1;
 }
 
 .chest-touch,
@@ -144,15 +168,15 @@
   position: absolute;
   border: none;
   border-radius: 999px;
-  background: rgba(253, 251, 246, 0.82);
+  background: rgba(253, 251, 246, 0.86);
   color: #4a3b3d;
   padding: 0.3rem 0.55rem;
   font-size: 0.76rem;
 }
 
 .chest-touch {
-  left: 40%;
-  top: 56%;
+  left: 44%;
+  top: 58%;
   transform: translateX(-50%);
 }
 
@@ -162,17 +186,17 @@
   opacity: 0.72;
 }
 
-.bunny-canvas.chest-active .linework,
-.bunny-canvas.chest-active .watercolor,
-.bunny-canvas.chest-active .detail-ink {
-  box-shadow: 0 0 1.4rem rgba(255, 186, 145, 0.45);
+.bunny-canvas.chest-active .bunny-linework,
+.bunny-canvas.chest-active .bunny-watercolor,
+.bunny-canvas.chest-active .bunny-details {
+  filter: drop-shadow(0 0 1.2rem rgba(255, 186, 145, 0.5));
 }
 
-.phase-crouch .bunny-body { transform: translateX(var(--journey-x, 0)) translateY(10px) scale(0.98); }
-.phase-spring .bunny-body { transform: translateX(var(--journey-x, 0)) translateY(-18px) scale(1.02); }
-.phase-float .bunny-body { transform: translateX(var(--journey-x, 0)) translateY(-24px) scale(1.01); }
-.phase-landing .bunny-body { transform: translateX(var(--journey-x, 0)) translateY(4px) scale(0.98); }
-.phase-settle .bunny-body { transform: translateX(var(--journey-x, 0)); }
+.phase-crouch .bunny-figure { transform: translateX(var(--journey-x, 0)) translateY(10px) scale(0.98); }
+.phase-spring .bunny-figure { transform: translateX(var(--journey-x, 0)) translateY(-18px) scale(1.02); }
+.phase-float .bunny-figure { transform: translateX(var(--journey-x, 0)) translateY(-24px) scale(1.01); }
+.phase-landing .bunny-figure { transform: translateX(var(--journey-x, 0)) translateY(4px) scale(0.98); }
+.phase-settle .bunny-figure { transform: translateX(var(--journey-x, 0)); }
 
 .journal-book {
   position: absolute;
@@ -220,7 +244,7 @@
     grid-template-columns: 1fr;
   }
 
-  .bunny-body {
+  .bunny-figure {
     margin: 1.6rem auto 0;
   }
 
