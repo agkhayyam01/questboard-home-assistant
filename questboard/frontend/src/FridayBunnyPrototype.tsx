@@ -76,6 +76,14 @@ const isImageResponse = (response: Response) => {
   const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
   return response.ok && contentType.startsWith('image/')
 }
+const prototypeRootPath = () => {
+  const marker = '/prototype/friday-bunny'
+  const lowerPath = window.location.pathname.toLowerCase()
+  const markerIndex = lowerPath.indexOf(marker)
+  if (markerIndex >= 0) return window.location.pathname.slice(0, markerIndex + 1)
+  return window.location.pathname.endsWith('/') ? window.location.pathname : `${window.location.pathname}/`
+}
+const assetUrl = (assetPath: string) => new URL(assetPath, `${window.location.origin}${prototypeRootPath()}`).toString()
 
 function loadState(): PrototypeState {
   try {
@@ -110,6 +118,8 @@ export default function FridayBunnyPrototype() {
   const journeyTimers = useRef<number[]>([])
   const holdTimer = useRef<number | null>(null)
   const activeStroke = useRef<PointerStroke | null>(null)
+  const bunnyMasterSrc = useMemo(() => assetUrl(BUNNY_MASTER_ASSET), [])
+  const bunnyHoppingSrc = useMemo(() => assetUrl(BUNNY_HOPPING_PREVIEW), [])
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
@@ -120,7 +130,7 @@ export default function FridayBunnyPrototype() {
     const checkAssets = async () => {
       const checks = await Promise.all(REQUIRED_ASSETS.map(async asset => {
         try {
-          const response = await fetch(asset.path, { method: 'HEAD' })
+          const response = await fetch(assetUrl(asset.path), { method: 'HEAD' })
           return [asset.path, isImageResponse(response)] as const
         } catch {
           return [asset.path, false] as const
@@ -238,6 +248,15 @@ export default function FridayBunnyPrototype() {
       : 'Linework revealed. Now tap to reveal watercolor and details.')
   }
 
+  const completeCurrentStroke = () => {
+    if (!state.started || state.strokesDone >= guides.length || !canRenderBunny) return
+    const done = state.strokesDone + 1
+    updateState({ strokesDone: done })
+    setStatusMessage(done < guides.length
+      ? `Guide stroke ${done} completed from controls.`
+      : 'Linework revealed. Now tap to reveal watercolor and details.')
+  }
+
   const revealWatercolor = () => {
     if (!state.started || state.strokesDone < guides.length || state.watercolorRevealed || !canRenderBunny) return
     updateState({ watercolorRevealed: true })
@@ -257,9 +276,8 @@ export default function FridayBunnyPrototype() {
     }
   }
 
-  const holdChestStart = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (!state.detailRevealed || state.awakened || !canRenderBunny) return
-    safeCapture(event.currentTarget, event.pointerId)
+  const startChestHold = () => {
+    if (!state.detailRevealed || state.awakened || !canRenderBunny || chestHolding) return
     clearHoldTimer()
     setChestHolding(true)
     setStatusMessage('Keep holding... Bunny is warming and preparing a first breath.')
@@ -271,8 +289,7 @@ export default function FridayBunnyPrototype() {
     }, 1100)
   }
 
-  const holdChestEnd = (event: React.PointerEvent<HTMLButtonElement>) => {
-    safeRelease(event.currentTarget, event.pointerId)
+  const endChestHold = () => {
     if (state.awakened) {
       setChestHolding(false)
       clearHoldTimer()
@@ -282,6 +299,28 @@ export default function FridayBunnyPrototype() {
     clearHoldTimer()
     setChestHolding(false)
     setStatusMessage('Hold ended early. You can retry the chest touch anytime.')
+  }
+
+  const holdChestPointerStart = (event: React.PointerEvent<HTMLButtonElement>) => {
+    safeCapture(event.currentTarget, event.pointerId)
+    startChestHold()
+  }
+
+  const holdChestPointerEnd = (event: React.PointerEvent<HTMLButtonElement>) => {
+    safeRelease(event.currentTarget, event.pointerId)
+    endChestHold()
+  }
+
+  const holdChestKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if ((event.key !== ' ' && event.key !== 'Enter') || event.repeat) return
+    event.preventDefault()
+    startChestHold()
+  }
+
+  const holdChestKeyUp = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key !== ' ' && event.key !== 'Enter') return
+    event.preventDefault()
+    endChestHold()
   }
 
   const queuePhase = (phase: JourneyPhase, delay: number, callback?: () => void) => {
@@ -334,8 +373,12 @@ export default function FridayBunnyPrototype() {
       <p className="prototype-tag">Prototype only</p>
       <h1>Friday Bunny Story Prototype</h1>
       <p className="prototype-subtitle">Isolated browser-only scene. No profile, save, Skylight, or Home Assistant data is used.</p>
-      <p className="prototype-status" role="status">{hint}</p>
+      <p className="prototype-status" id="prototype-hint" role="status">{hint}</p>
       <p className="prototype-message" role="status">{statusMessage}</p>
+      <p className="sr-only" id="friday-gesture-help">
+        Guided strokes can be completed by dragging on the canvas or by using the complete guided stroke control button.
+        The chest hold can be done with press-and-hold pointer input or with keyboard by holding Space or Enter on the Hold chest button.
+      </p>
       {!assetsChecking && missingAssets.length > 0 && <div className="prototype-blocker" role="alert">
         <p>Source blocker: required approved assets are missing from this repository. Provide authorized handoff for:</p>
         <ul>
@@ -360,17 +403,26 @@ export default function FridayBunnyPrototype() {
               />
             })}
           </div>
-          <div className="bunny-figure" onPointerDown={beginStroke} onPointerMove={moveStroke} onPointerUp={finishStroke} onPointerCancel={finishStroke} role="application" aria-label="Guided stroke canvas">
+          <div
+            className="bunny-figure"
+            onPointerDown={beginStroke}
+            onPointerMove={moveStroke}
+            onPointerUp={finishStroke}
+            onPointerCancel={finishStroke}
+            role="group"
+            aria-label="Guided stroke canvas"
+            aria-describedby="prototype-hint friday-gesture-help"
+          >
             {canRenderBunny
               ? <>
-                <img src={BUNNY_MASTER_ASSET} alt="Approved Friday Bunny artwork" className="bunny-image bunny-linework" data-testid="bunny-master-linework" draggable={false} />
-                <img src={BUNNY_MASTER_ASSET} alt="" aria-hidden="true" className="bunny-image bunny-watercolor" data-testid="bunny-master-watercolor" draggable={false} />
-                <img src={BUNNY_MASTER_ASSET} alt="" aria-hidden="true" className="bunny-image bunny-details" data-testid="bunny-master-details" draggable={false} />
+                <img src={bunnyMasterSrc} alt="Approved Friday Bunny artwork" className="bunny-image bunny-linework" data-testid="bunny-master-linework" draggable={false} />
+                <img src={bunnyMasterSrc} alt="" aria-hidden="true" className="bunny-image bunny-watercolor" data-testid="bunny-master-watercolor" draggable={false} />
+                <img src={bunnyMasterSrc} alt="" aria-hidden="true" className="bunny-image bunny-details" data-testid="bunny-master-details" draggable={false} />
               </>
               : <p className="missing-artwork">Waiting for approved Bunny master artwork handoff.</p>}
 
             {(canRunJourney && (journeyInFlight || state.journeyDone)) && <img
-              src={BUNNY_HOPPING_PREVIEW}
+              src={bunnyHoppingSrc}
               alt="Exploratory Bunny hopping preview"
               className="hopping-preview"
               data-testid="bunny-hopping-preview"
@@ -382,10 +434,14 @@ export default function FridayBunnyPrototype() {
               className="chest-touch"
               aria-label="Hold Bunny chest"
               disabled={!canRenderBunny || !state.detailRevealed || state.awakened}
-              onPointerDown={holdChestStart}
-              onPointerUp={holdChestEnd}
-              onPointerCancel={holdChestEnd}
-              onPointerLeave={holdChestEnd}
+              onPointerDown={holdChestPointerStart}
+              onPointerUp={holdChestPointerEnd}
+              onPointerCancel={holdChestPointerEnd}
+              onPointerLeave={holdChestPointerEnd}
+              onKeyDown={holdChestKeyDown}
+              onKeyUp={holdChestKeyUp}
+              onBlur={endChestHold}
+              aria-describedby="prototype-hint friday-gesture-help"
             >
               Hold chest
             </button>
@@ -405,6 +461,9 @@ export default function FridayBunnyPrototype() {
 
       <aside className="prototype-controls" aria-label="Friday controls">
         <button type="button" onClick={beginChapter} disabled={state.started || !canRenderBunny}>Begin Friday chapter</button>
+        <button type="button" onClick={completeCurrentStroke} disabled={!state.started || state.strokesDone >= guides.length || !canRenderBunny}>
+          Complete guided stroke
+        </button>
         <button type="button" onClick={revealWatercolor} disabled={!state.started || state.strokesDone < guides.length || state.watercolorRevealed || !canRenderBunny}>Reveal watercolor</button>
         <button type="button" onClick={revealDetails} disabled={!state.watercolorRevealed || state.detailRevealed || !canRenderBunny}>Reveal finishing details</button>
         <button type="button" onClick={saveJournal} disabled={!state.journeyDone}>Save {ACCEPTANCE_JOURNAL_TITLE} page</button>

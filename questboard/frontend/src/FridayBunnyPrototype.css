@@ -239,6 +239,26 @@
   border-color: #d8ccbc;
 }
 
+.prototype-controls button:focus-visible,
+.chest-touch:focus-visible,
+.destination:focus-visible {
+  outline: 2px solid #875f5a;
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  border: 0;
+  padding: 0;
+  white-space: nowrap;
+  clip-path: inset(100%);
+  clip: rect(0 0 0 0);
+  overflow: hidden;
+}
+
 @media (max-width: 820px) {
   .prototype-scene {
     grid-template-columns: 1fr;

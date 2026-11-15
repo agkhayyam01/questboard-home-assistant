@@ -30,6 +30,8 @@ The prototype expects approved artwork handoff at:
 
 If these files are missing, the prototype displays an in-app blocker message instead of introducing replacement art.
 
+For accessibility verification, the prototype includes keyboard-equivalent controls for guided strokes and chest hold (`Complete guided stroke`, plus hold `Space`/`Enter` on `Hold chest`).
+
 For a genuine browser preview (desktop + device-reachable on your local network), run:
 
 ```sh
@@ -40,3 +42,5 @@ Then open either:
 
 - `http://localhost:4173/prototype/friday-bunny`
 - `http://<your-machine-lan-ip>:4173/prototype/friday-bunny`
+
+If you received a private asset handoff ZIP, extract the three approved files into `public/assets/prototype/friday/` locally for preview. Do not commit those source artwork files to this public repository.

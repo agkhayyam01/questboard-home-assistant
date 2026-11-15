@@ -18,10 +18,11 @@ const strokePoints = [
 const mockAssetFetch = (missing: string[] = []) => {
   vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
     const path = String(input)
-    if (requiredAssets.includes(path)) {
+    const matchedAsset = requiredAssets.find(asset => path.endsWith(asset))
+    if (matchedAsset) {
       return new Response('', {
-        status: missing.includes(path) ? 404 : 200,
-        headers: missing.includes(path) ? { 'Content-Type': 'text/html' } : { 'Content-Type': 'image/jpeg' },
+        status: missing.includes(matchedAsset) ? 404 : 200,
+        headers: missing.includes(matchedAsset) ? { 'Content-Type': 'text/html' } : { 'Content-Type': 'image/jpeg' },
       })
     }
     return new Response('', { status: 404, headers: { 'Content-Type': 'text/html' } })
@@ -59,7 +60,7 @@ describe('Friday Bunny prototype', () => {
     await waitFor(() => expect(screen.getByTestId('bunny-master-linework')).toBeTruthy())
     fireEvent.click(screen.getByRole('button', { name: 'Begin Friday chapter' }))
 
-    const canvas = screen.getByRole('application', { name: 'Guided stroke canvas' })
+    const canvas = screen.getByRole('group', { name: 'Guided stroke canvas' })
     vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
       x: 0, y: 0, left: 0, top: 0, right: 100, bottom: 100, width: 100, height: 100,
       toJSON: () => ({}),
@@ -98,6 +99,33 @@ describe('Friday Bunny prototype', () => {
     expect(screen.getByText('Journal pages saved: 1')).toBeTruthy()
     expect(screen.getByLabelText('Journal book icon')).toBeTruthy()
   }, 12000)
+
+  it('supports keyboard-only progression for guided controls and chest hold', async () => {
+    render(<FridayBunnyPrototype />)
+    await waitFor(() => expect(screen.getByTestId('bunny-master-linework')).toBeTruthy())
+
+    fireEvent.click(screen.getByRole('button', { name: 'Begin Friday chapter' }))
+    const completeStroke = screen.getByRole('button', { name: 'Complete guided stroke' })
+    fireEvent.click(completeStroke)
+    fireEvent.click(completeStroke)
+    fireEvent.click(completeStroke)
+    fireEvent.click(completeStroke)
+    expect(screen.getByText('Checkpoint resume: 4/4 strokes complete')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reveal watercolor' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reveal finishing details' }))
+
+    const chest = screen.getByRole('button', { name: 'Hold Bunny chest' })
+    fireEvent.keyDown(chest, { key: ' ', code: 'Space' })
+    await act(async () => { await new Promise(resolve => window.setTimeout(resolve, 450)) })
+    fireEvent.keyUp(chest, { key: ' ', code: 'Space' })
+    expect(screen.getByText(/Hold ended early/)).toBeTruthy()
+
+    fireEvent.keyDown(chest, { key: 'Enter', code: 'Enter' })
+    await act(async () => { await new Promise(resolve => window.setTimeout(resolve, 1200)) })
+    fireEvent.keyUp(chest, { key: 'Enter', code: 'Enter' })
+    expect(screen.getByText(/First breath complete/)).toBeTruthy()
+  }, 10000)
 
   it('resumes saved checkpoint after refresh', async () => {
     window.localStorage.setItem('questboard.friday_bunny_prototype.v1', JSON.stringify({
